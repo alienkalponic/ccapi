@@ -1,0 +1,27 @@
+
+Log Entry : 21:50:57 01 April 2025
+  :
+  :Newtonsoft.Json.JsonReaderException: Error reading JObject from JsonReader. Path '', line 0, position 0.
+   at Newtonsoft.Json.Linq.JObject.Load(JsonReader reader, JsonLoadSettings settings)
+   at Newtonsoft.Json.Linq.JObject.Parse(String json, JsonLoadSettings settings)
+   at Newtonsoft.Json.Linq.JObject.Parse(String json)
+   at Project.Api.Controllers.AuthenticationController.DataTest() in F:\ADVANCE DOT NET CORE\Protfolio\Api\Project.Api\Controllers\AuthenticationController.cs:line 249
+---------------------------------------------------------------------------------------------
+
+Log Entry : 21:53:56 01 April 2025
+  :
+  :Newtonsoft.Json.JsonReaderException: Error reading JObject from JsonReader. Path '', line 0, position 0.
+   at Newtonsoft.Json.Linq.JObject.Load(JsonReader reader, JsonLoadSettings settings)
+   at Newtonsoft.Json.Linq.JObject.Parse(String json, JsonLoadSettings settings)
+   at Newtonsoft.Json.Linq.JObject.Parse(String json)
+   at Project.Api.Controllers.AuthenticationController.DataTest() in F:\ADVANCE DOT NET CORE\Protfolio\Api\Project.Api\Controllers\AuthenticationController.cs:line 249
+---------------------------------------------------------------------------------------------
+
+Log Entry : 22:03:24 01 April 2025
+  :
+  :Newtonsoft.Json.JsonReaderException: Error reading JObject from JsonReader. Path '', line 0, position 0.
+   at Newtonsoft.Json.Linq.JObject.Load(JsonReader reader, JsonLoadSettings settings)
+   at Newtonsoft.Json.Linq.JObject.Parse(String json, JsonLoadSettings settings)
+   at Newtonsoft.Json.Linq.JObject.Parse(String json)
+   at Project.Api.Controllers.AuthenticationController.DataTest() in F:\ADVANCE DOT NET CORE\Protfolio\Api\Project.Api\Controllers\AuthenticationController.cs:line 250
+---------------------------------------------------------------------------------------------
