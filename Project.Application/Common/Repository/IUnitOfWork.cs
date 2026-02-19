@@ -15,5 +15,9 @@ namespace Project.Application.Common.Repository
         IUsersRepository usersRepository { get; }
 
         #endregion
+
+        #region::Bananer
+        public IBannerRepository bannerRepository { get; }
+        #endregion
     }
 }

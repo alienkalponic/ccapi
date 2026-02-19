@@ -19,5 +19,9 @@ namespace Project.Infastructure.Data
         public DbSet<Users> Users {  get; set; }
         public DbSet<Contact> Contact {  get; set; }
         #endregion
+
+        #region::Bananer
+        public DbSet<Banner> Banner { get; set; }
+        #endregion
     }
 }

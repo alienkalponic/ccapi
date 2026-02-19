@@ -27,6 +27,10 @@ namespace Project.Infastructure.Service
 
 
         #endregion
+
+        #region::Banner
+        public IBannerRepository bannerRepository { get; private set; }
+        #endregion
         public UnitOfWork(IConfiguration configuration, ApplicationDbContext db)
         {
             _db = db;
@@ -34,6 +38,7 @@ namespace Project.Infastructure.Service
             roleRepository = new RoleService(configuration, _db);
             contactRepository = new ContactService(configuration,_db);
             usersRepository=new UsersService(configuration,_db);
+            bannerRepository=new BannerService(configuration, _db);
         }
 
         
