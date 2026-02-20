@@ -150,6 +150,8 @@ namespace Project.Api.Controllers
         [Route("Create-banner", Name = "CreateBanner")]
         public async Task<ActionResult<ApiResponse>> CreateBanner([FromForm] CreateBannerDto dto)
         {
+            var rootPath = _webHostEnvironment.WebRootPath
+               ?? Path.Combine(Directory.GetCurrentDirectory());
             if (dto.File == null || dto.File.Length == 0)
                 return _responseService.Error("File is required");
 
@@ -157,7 +159,7 @@ namespace Project.Api.Controllers
                 return _responseService.Error("Only image/video allowed");
 
             (string fileUrl, string fileName) =
-     await FileUploadHelper.SaveFileAsync(dto.File, _webHostEnvironment.WebRootPath,"banners");
+     await FileUploadHelper.SaveFileAsync(dto.File, _webHostEnvironment.WebRootPath, "banners");
 
 
             string? mobileUrl = null;
@@ -166,11 +168,11 @@ namespace Project.Api.Controllers
             {
                 if (!FileUploadHelper.IsImage(dto.MobileFile))
                 {
-                    FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, fileUrl);
-                    FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, mobileUrl!);
+                    FileUploadHelper.DeleteFile(rootPath, fileUrl);
+                    FileUploadHelper.DeleteFile(rootPath, mobileUrl!);
                     return _responseService.Error("Mobile file must be image");
                 }
-                    
+
 
                 var mobileResult =
                     await FileUploadHelper.SaveFileAsync(dto.MobileFile, _webHostEnvironment.WebRootPath, "banners");
@@ -213,13 +215,13 @@ namespace Project.Api.Controllers
             }
             else
             {
-                FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, fileUrl);
-                FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, mobileUrl);
+                FileUploadHelper.DeleteFile(rootPath, fileUrl);
+                FileUploadHelper.DeleteFile(rootPath, mobileUrl);
                 return _responseService.Error((string)JSONObj["Response"]);
             }
 
 
-                
+
         }
 
 
@@ -244,6 +246,8 @@ namespace Project.Api.Controllers
             string? oldFileUrl = null;
             string? oldMobileUrl = null;
             string? oldFileName = null;
+            var rootPath = _webHostEnvironment.WebRootPath
+               ?? Path.Combine(Directory.GetCurrentDirectory());
             try
             {
                 /* -------------------------------------------------
@@ -260,7 +264,7 @@ namespace Project.Api.Controllers
                     .CallStoreProcedure("Sp_Circle_ContentManagement", fetchParams);
 
                 JObject existingJson = JObject.Parse(existingBannerResponse);
-                
+
 
                 if (!Convert.ToBoolean(existingJson["Status"]))
                     return _responseService.Error("Banner not found");
@@ -270,9 +274,9 @@ namespace Project.Api.Controllers
                 {
                     oldFileUrl = responseArray[0]["ImageUrl"]?.ToString();
                     oldMobileUrl = responseArray[0]["MobileImageUrl"]?.ToString();
-                    oldFileName= responseArray[0]["ImageName"]?.ToString();
+                    oldFileName = responseArray[0]["ImageName"]?.ToString();
                 }
-                
+
 
                 /* -------------------------------------------------
                    2️⃣ VALIDATE & SAVE NEW MAIN FILE
@@ -340,8 +344,9 @@ namespace Project.Api.Controllers
 
                 if (!Convert.ToBoolean(updateJson["Status"]))
                 {
-                    FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, newFileUrl);
-                    FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, newMobileUrl);
+                    
+                    FileUploadHelper.DeleteFile(rootPath, newFileUrl);
+                    FileUploadHelper.DeleteFile(rootPath, newMobileUrl);
 
                     return _responseService.Error((string)updateJson["Response"]);
                 }
@@ -351,10 +356,10 @@ namespace Project.Api.Controllers
                 --------------------------------------------------*/
 
                 if (dto.File != null)
-                    FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, oldFileUrl);
+                    FileUploadHelper.DeleteFile(rootPath, oldFileUrl);
 
                 if (dto.MobileFile != null)
-                    FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, oldMobileUrl);
+                    FileUploadHelper.DeleteFile(rootPath, oldMobileUrl);
 
                 return _responseService.Success((string)updateJson["Response"]);
             }
@@ -364,8 +369,8 @@ namespace Project.Api.Controllers
                    7️⃣ EXCEPTION → CLEANUP NEW FILES
                 --------------------------------------------------*/
 
-                FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, newFileUrl);
-                FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, newMobileUrl);
+                FileUploadHelper.DeleteFile(rootPath, newFileUrl);
+                FileUploadHelper.DeleteFile(rootPath, newMobileUrl);
 
                 return _responseService.Error(ex.Message);
             }
@@ -384,6 +389,8 @@ namespace Project.Api.Controllers
         [Route("delete-banner-by-id/{BannerId:long}", Name = "DeleteBannerById")]
         public async Task<ActionResult<ApiResponse>> DeleteBannerById(long BannerId)
         {
+            var rootPath = _webHostEnvironment.WebRootPath
+               ?? Path.Combine(Directory.GetCurrentDirectory());
             string? oldFileUrl = null;
             string? oldMobileUrl = null;
             var fetchParams = new SqlParameter[]
@@ -416,10 +423,10 @@ namespace Project.Api.Controllers
                     oldMobileUrl = responseArray[0]["MobileImageUrl"]?.ToString();
 
                     if (oldFileUrl != null)
-                        FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, oldFileUrl);
+                        FileUploadHelper.DeleteFile(rootPath, oldFileUrl);
 
                     if (oldMobileUrl != null)
-                        FileUploadHelper.DeleteFile(_webHostEnvironment.WebRootPath, oldMobileUrl);
+                        FileUploadHelper.DeleteFile(rootPath, oldMobileUrl);
 
                 }
                 if (JSONObj["Response"] != null)

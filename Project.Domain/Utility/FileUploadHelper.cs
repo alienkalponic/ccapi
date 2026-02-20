@@ -30,9 +30,15 @@ namespace Project.Domain.Utility
         }
 
         public static async Task<(string fileUrl, string fileName)> SaveFileAsync(
-            IFormFile file, string rootPath, string folderName)
+    IFormFile file, string rootPath, string folderName)
         {
-            string uploadsFolder = Path.Combine(rootPath, "assets/uploads/"+folderName);
+            if (file == null)
+                throw new ArgumentNullException(nameof(file));
+
+            // Fallback যদি rootPath null হয়
+            rootPath ??= Directory.GetCurrentDirectory();
+
+            string uploadsFolder = Path.Combine(rootPath,"assets", "uploads", folderName);
             Directory.CreateDirectory(uploadsFolder);
 
             string extension = Path.GetExtension(file.FileName);
@@ -41,7 +47,6 @@ namespace Project.Domain.Utility
 
             if (IsImage(file) && file.ContentType != "image/svg+xml")
             {
-
                 newFileName = $"{Guid.NewGuid()}.webp";
                 fullPath = Path.Combine(uploadsFolder, newFileName);
 
@@ -62,6 +67,7 @@ namespace Project.Domain.Utility
             return (fileUrl, newFileName);
         }
 
+
         public static async Task<string> SaveMobileVersionAsync(Image image, string path)
         {
             var clone = image.Clone(x => x.Resize(new ResizeOptions
@@ -77,28 +83,27 @@ namespace Project.Domain.Utility
             return Path.GetFileName(mobilePath);
         }
 
-        public static void DeleteFile(string webRootPath, string? fileUrl)
+        public static void DeleteFile(string? webRootPath, string? fileUrl)
         {
             if (string.IsNullOrWhiteSpace(fileUrl))
                 return;
 
-            try
-            {
-                var cleanUrl = fileUrl.Replace("/", Path.DirectorySeparatorChar.ToString())
-                                      .TrimStart(Path.DirectorySeparatorChar);
+            webRootPath ??= Path.Combine(Directory.GetCurrentDirectory());
 
-                var fullPath = Path.Combine(webRootPath, cleanUrl);
+            // যদি full URL আসে → শুধু path অংশ নাও
+            if (Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
+                fileUrl = uri.AbsolutePath;
 
-                if (File.Exists(fullPath))
-                {
-                    File.Delete(fullPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                // TEMP DEBUG লগ করো
-                Console.WriteLine($"DELETE ERROR: {ex.Message}");
-            }
+            var cleanUrl = fileUrl
+                .Replace("/", Path.DirectorySeparatorChar.ToString())
+                .TrimStart(Path.DirectorySeparatorChar);
+
+            var fullPath = Path.Combine(webRootPath, cleanUrl);
+
+            if (File.Exists(fullPath))
+                File.Delete(fullPath);
         }
+
+
     }
 }
