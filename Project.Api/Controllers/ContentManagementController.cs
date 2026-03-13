@@ -1,16 +1,22 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Project.Application.Common.Repository;
 using Project.Domain.Dto.Banner;
+using Project.Domain.Dto.ClubDescription;
 using Project.Domain.Model;
 using Project.Domain.Utility;
+using Project.Infastructure.Data;
+using Project.Infastructure.Service;
 using System.Data;
+using IOFile = System.IO.File;
+using IODirectory = System.IO.Directory;
 
 namespace Project.Api.Controllers
 {
@@ -25,9 +31,16 @@ namespace Project.Api.Controllers
         private readonly LogService _logService;
         private readonly IApiResponseService _responseService;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly ApplicationDbContext _db;
         private Dictionary<string, object> _dictionaryData;
 
-        public ContentManagementController(IUnitOfWork unitofWork, LogService logService, IConfiguration configuration, IApiResponseService responseService, IWebHostEnvironment webHostEnvironment)
+        public ContentManagementController(
+            IUnitOfWork unitofWork,
+            LogService logService,
+            IConfiguration configuration,
+            IApiResponseService responseService,
+            IWebHostEnvironment webHostEnvironment,
+            ApplicationDbContext db)
         {
             _unitofWork = unitofWork;
             this.apiResponse = new();
@@ -35,6 +48,7 @@ namespace Project.Api.Controllers
             _logService = logService;
             _responseService = responseService;
             _webHostEnvironment = webHostEnvironment;
+            _db = db;
         }
 
         #region::Banner
@@ -438,6 +452,404 @@ namespace Project.Api.Controllers
             return _responseService.Error((string)JSONObj["Response"]);
         }
 
+
+        #endregion
+
+        #region::Club Description
+
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Get-all-club-description/{PageSize:long}/{PageNumber:long}")]
+        public async Task<ActionResult<ApiResponse>> GetAllClubDescription(long PageSize, long PageNumber, string? Search = null)
+        {
+            var paramObj = new SqlParameter[]
+            {
+                new("@OPERATION_ID", 10),
+                new("@PageSize", PageSize),
+                new("@PageNumber", PageNumber),
+                new("@Search", Search ?? (object)DBNull.Value)
+            };
+
+            string responseDetails = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", paramObj);
+
+            JObject JSONObj = JObject.Parse(responseDetails);
+
+            if (Convert.ToBoolean(JSONObj["Status"]))
+            {
+                return _responseService.Success(JsonConvert.SerializeObject(JSONObj["Response"]));
+            }
+
+            return _responseService.Error((string)JSONObj["Response"]);
+        }
+
+
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Get-club-description-by-id/{ClubDescriptionId:long}")]
+        public async Task<ActionResult<ApiResponse>> GetClubDescriptionById(long ClubDescriptionId)
+        {
+            var paramObj = new SqlParameter[]
+            {
+                new("@OPERATION_ID", 9),
+                new("@ClubDescriptionId", ClubDescriptionId)
+            };
+
+            string responseDetails = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", paramObj);
+
+            JObject JSONObj = JObject.Parse(responseDetails);
+
+            if (Convert.ToBoolean(JSONObj["Status"]))
+            {
+                return _responseService.Success(JsonConvert.SerializeObject(JSONObj["Response"]));
+            }
+
+            return _responseService.Error((string)JSONObj["Response"]);
+        }
+
+        [HttpPost]
+        [Route("Create-club-description")]
+        public async Task<ActionResult<ApiResponse>> CreateClubDescription([FromForm] CreateClubDescriptionDto dto)
+        {
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+
+            if (string.IsNullOrWhiteSpace(dto.Title))
+                return _responseService.Error("Title is required");
+
+            List<dynamic>? imagesMeta = null;
+
+            if (!string.IsNullOrWhiteSpace(dto.ImagesJson))
+            {
+                imagesMeta = JsonConvert.DeserializeObject<List<dynamic>>(dto.ImagesJson);
+            }
+
+            var uploadedImages = new List<object>();
+
+            if (dto.Files != null && dto.Files.Count > 0)
+            {
+                for (int i = 0; i < dto.Files.Count; i++)
+                {
+                    var file = dto.Files[i];
+
+                    if (!FileUploadHelper.IsImage(file))
+                        return _responseService.Error($"File {file.FileName} is not a valid image");
+
+                    var (fileUrl, fileName) =
+                        await FileUploadHelper.SaveFileAsync(file, rootPath, "club");
+
+                    uploadedImages.Add(new
+                    {
+                        Title = fileName.ToString(),
+                        DisplayOrder = i+1,
+                        ImageUrl = fileUrl,
+                        ImageName = fileName
+                    });
+                }
+            }
+
+            var jsonObject = new[]
+            {
+                new
+                {
+                    dto.Title,
+                    dto.Description,
+                    dto.DisplayOrder,
+                    dto.IsActive,
+                    Images = uploadedImages
+                }
+            };
+
+            var parameters = new SqlParameter[]
+            {
+        new("@OPERATION_ID", 6),
+        new("@JSON", JsonConvert.SerializeObject(jsonObject))
+            };
+
+            var response = await _unitofWork.clubDescriptionRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", parameters);
+
+            var json = JObject.Parse(response);
+
+            if (!Convert.ToBoolean(json["Status"]))
+            {
+                foreach (var img in uploadedImages)
+                    FileUploadHelper.DeleteFile(rootPath, (string)img.GetType().GetProperty("ImageUrl")!.GetValue(img)!);
+
+                return _responseService.Error((string)json["Response"]!);
+            }
+
+            return _responseService.Success((string)json["Response"]!);
+        }
+
+        //[Authorize]
+        [HttpPost]
+        [Route("Update-club-description")]
+        public async Task<ActionResult<ApiResponse>> UpdateClubDescription([FromForm] UpdateClubDescriptionRequestDto dto)
+        {
+            if (dto.ClubDescriptionId <= 0)
+                return _responseService.Error("Invalid ClubDescriptionId");
+
+            var webRootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+
+            // Track file operations so we can roll back safely if the DB transaction fails.
+            var movedToTrash = new List<(string OriginalFullPath, string TrashFullPath)>();
+            var newlyCreatedFullPaths = new List<string>();
+
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var club = await _db.ClubDescription
+                    .FirstOrDefaultAsync(x => x.ClubDescriptionId == dto.ClubDescriptionId && !x.IsDeleted);
+
+                if (club == null)
+                    return _responseService.NotFound("Club description not found");
+
+                // Update only the fields the client actually sent.
+                if (dto.Title != null) club.Title = dto.Title;
+                if (dto.Description != null) club.Description = dto.Description;
+                if (dto.DisplayOrder.HasValue) club.DisplayOrder = dto.DisplayOrder.Value;
+                if (dto.IsActive.HasValue) club.IsActive = dto.IsActive.Value;
+                club.UpdatedAt = DateTime.UtcNow;
+
+                var existingImages = await _db.ClubDescriptionImage
+                    .Where(x => x.ClubDescriptionId == dto.ClubDescriptionId && !x.IsDeleted)
+                    .ToListAsync();
+
+                await DeleteClubDescriptionImagesAsync(
+                    webRootPath,
+                    existingImages,
+                    dto.DeletedImageIds ?? new List<long>(),
+                    movedToTrash);
+
+                await AddClubDescriptionImagesAsync(
+                    webRootPath,
+                    dto.ClubDescriptionId,
+                    dto.NewImages ?? new List<IFormFile>(),
+                    existingImages,
+                    newlyCreatedFullPaths);
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                // After commit: permanently delete the trashed files (best-effort).
+                PermanentlyDeleteTrashedFiles(movedToTrash);
+
+                return _responseService.Success("Club description updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+
+                // Roll back file operations best-effort so disk stays consistent with DB rollback.
+                RestoreMovedFiles(movedToTrash);
+                DeleteNewFiles(newlyCreatedFullPaths);
+
+                return _responseService.Error("Failed to update club description. " + ex.Message);
+            }
+        }
+
+        private async Task DeleteClubDescriptionImagesAsync(
+            string webRootPath,
+            List<ClubDescriptionImage> existingImages,
+            List<long> deletedImageIds,
+            List<(string OriginalFullPath, string TrashFullPath)> movedToTrash)
+        {
+            var deleteSet = deletedImageIds
+                .Where(x => x > 0)
+                .Distinct()
+                .ToHashSet();
+
+            if (deleteSet.Count == 0)
+                return;
+
+            var existingIds = existingImages.Select(x => x.ClubDescriptionImageId).ToHashSet();
+            var invalidIds = deleteSet.Except(existingIds).ToList();
+            if (invalidIds.Count > 0)
+                throw new InvalidOperationException($"One or more images do not belong to this club description: {string.Join(",", invalidIds)}");
+
+            var imagesToDelete = existingImages.Where(x => deleteSet.Contains(x.ClubDescriptionImageId)).ToList();
+
+            // Move files to a trash folder first. If the DB transaction rolls back, we can move them back.
+            foreach (var img in imagesToDelete)
+            {
+                var originalFullPath = TryResolveFullPath(webRootPath, img.ImageUrl);
+                if (string.IsNullOrWhiteSpace(originalFullPath))
+                    continue;
+
+                if (!IOFile.Exists(originalFullPath))
+                    continue;
+
+                var originalDir = Path.GetDirectoryName(originalFullPath)!;
+                var batchTrashDir = Path.Combine(originalDir, ".trash", Guid.NewGuid().ToString("N"));
+                IODirectory.CreateDirectory(batchTrashDir);
+
+                var trashFullPath = Path.Combine(batchTrashDir, Path.GetFileName(originalFullPath));
+
+                // Ensure destination is unique.
+                if (IOFile.Exists(trashFullPath))
+                    trashFullPath = Path.Combine(batchTrashDir, $"{Guid.NewGuid():N}_{Path.GetFileName(originalFullPath)}");
+
+                IOFile.Move(originalFullPath, trashFullPath);
+                movedToTrash.Add((originalFullPath, trashFullPath));
+            }
+
+            _db.ClubDescriptionImage.RemoveRange(imagesToDelete);
+        }
+
+        private async Task AddClubDescriptionImagesAsync(
+            string webRootPath,
+            long clubDescriptionId,
+            List<IFormFile> newImages,
+            List<ClubDescriptionImage> existingImages,
+            List<string> newlyCreatedFullPaths)
+        {
+            if (newImages.Count == 0)
+                return;
+
+            var uploadDir = Path.Combine(webRootPath, "uploads", "clubDescriptionImages");
+            IODirectory.CreateDirectory(uploadDir);
+
+            var nextDisplayOrder = existingImages.Count == 0 ? 1 : existingImages.Max(x => x.DisplayOrder) + 1;
+
+            foreach (var file in newImages)
+            {
+                if (file == null || file.Length == 0)
+                    continue;
+
+                if (!FileUploadHelper.IsImage(file))
+                    throw new InvalidOperationException($"Invalid image file: {file.FileName}");
+
+                var extension = Path.GetExtension(file.FileName);
+                if (string.IsNullOrWhiteSpace(extension))
+                    extension = ".bin";
+
+                var newFileName = $"{Guid.NewGuid():N}{extension}";
+                var fullPath = Path.Combine(uploadDir, newFileName);
+
+                await using (var stream = new FileStream(fullPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                newlyCreatedFullPaths.Add(fullPath);
+
+                var imageUrl = $"/uploads/clubDescriptionImages/{newFileName}";
+
+                await _db.ClubDescriptionImage.AddAsync(new ClubDescriptionImage
+                {
+                    ClubDescriptionId = clubDescriptionId,
+                    Title = newFileName,
+                    ImageName = newFileName,
+                    ImageUrl = imageUrl,
+                    DisplayOrder = nextDisplayOrder++,
+                    IsActive = true,
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        private static string? TryResolveFullPath(string webRootPath, string? fileUrl)
+        {
+            if (string.IsNullOrWhiteSpace(fileUrl))
+                return null;
+
+            // If full URL comes in, extract just the path portion.
+            if (Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
+                fileUrl = uri.AbsolutePath;
+
+            var cleanUrl = fileUrl
+                .Replace("/", Path.DirectorySeparatorChar.ToString())
+                .TrimStart(Path.DirectorySeparatorChar);
+
+            return Path.Combine(webRootPath, cleanUrl);
+        }
+
+        private static void PermanentlyDeleteTrashedFiles(List<(string OriginalFullPath, string TrashFullPath)> movedToTrash)
+        {
+            foreach (var (_, trashFullPath) in movedToTrash)
+            {
+                try
+                {
+                    if (IOFile.Exists(trashFullPath))
+                        IOFile.Delete(trashFullPath);
+
+                    var parentDir = Path.GetDirectoryName(trashFullPath);
+                    if (!string.IsNullOrWhiteSpace(parentDir) && IODirectory.Exists(parentDir))
+                    {
+                        // Clean up empty trash directories.
+                        if (!IODirectory.EnumerateFileSystemEntries(parentDir).Any())
+                            IODirectory.Delete(parentDir, recursive: false);
+                    }
+                }
+                catch
+                {
+                    // Best-effort cleanup: at this point DB is committed and file is already out of the live folder.
+                }
+            }
+        }
+
+        private static void RestoreMovedFiles(List<(string OriginalFullPath, string TrashFullPath)> movedToTrash)
+        {
+            foreach (var (originalFullPath, trashFullPath) in movedToTrash)
+            {
+                try
+                {
+                    if (!IOFile.Exists(trashFullPath))
+                        continue;
+
+                    var originalDir = Path.GetDirectoryName(originalFullPath);
+                    if (!string.IsNullOrWhiteSpace(originalDir))
+                        IODirectory.CreateDirectory(originalDir);
+
+                    // If something was recreated at the original path, do not overwrite it.
+                    if (!IOFile.Exists(originalFullPath))
+                        IOFile.Move(trashFullPath, originalFullPath);
+                }
+                catch
+                {
+                    // Best-effort restore.
+                }
+            }
+        }
+
+        private static void DeleteNewFiles(List<string> newlyCreatedFullPaths)
+        {
+            foreach (var fullPath in newlyCreatedFullPaths)
+            {
+                try
+                {
+                    if (IOFile.Exists(fullPath))
+                        IOFile.Delete(fullPath);
+                }
+                catch
+                {
+                    // Best-effort cleanup.
+                }
+            }
+        }
+
+        [HttpDelete]
+        [Route("delete-club-description/{ClubDescriptionId:long}")]
+        public async Task<ActionResult<ApiResponse>> DeleteClubDescription(long ClubDescriptionId)
+        {
+            var paramObj = new SqlParameter[]
+            {
+                new("@OPERATION_ID", 8),
+                new("@ClubDescriptionId", ClubDescriptionId)
+            };
+
+            string response = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", paramObj);
+
+            JObject JSONObj = JObject.Parse(response);
+
+            if (Convert.ToBoolean(JSONObj["Status"]))
+                return _responseService.Success((string)JSONObj["Response"]);
+
+            return _responseService.Error((string)JSONObj["Response"]);
+        }
 
         #endregion
     }

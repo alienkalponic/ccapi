@@ -31,6 +31,11 @@ namespace Project.Infastructure.Service
         #region::Banner
         public IBannerRepository bannerRepository { get; private set; }
         #endregion
+
+        #region:: ClubDescription
+        public IClubDescriptionRepository clubDescriptionRepository { get; private set; }
+        public IClubDescriptionImageRepository clubDescriptionImageRepository { get; private set; }
+        #endregion
         public UnitOfWork(IConfiguration configuration, ApplicationDbContext db)
         {
             _db = db;
@@ -39,6 +44,8 @@ namespace Project.Infastructure.Service
             contactRepository = new ContactService(configuration,_db);
             usersRepository=new UsersService(configuration,_db);
             bannerRepository=new BannerService(configuration, _db);
+            clubDescriptionRepository=new ClubDescriptionService(configuration, _db);
+            clubDescriptionImageRepository=new ClubDescriptionImageService(configuration, _db);
         }
 
         

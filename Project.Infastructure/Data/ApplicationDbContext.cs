@@ -23,5 +23,10 @@ namespace Project.Infastructure.Data
         #region::Bananer
         public DbSet<Banner> Banner { get; set; }
         #endregion
+
+        #region::Club Description
+        public DbSet<ClubDescription> ClubDescription { get; set; }
+        public DbSet<ClubDescriptionImage> ClubDescriptionImage { get; set; }
+        #endregion
     }
 }

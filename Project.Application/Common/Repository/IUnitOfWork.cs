@@ -19,5 +19,10 @@ namespace Project.Application.Common.Repository
         #region::Bananer
         public IBannerRepository bannerRepository { get; }
         #endregion
+
+        #region::ClubDescription
+        public IClubDescriptionRepository clubDescriptionRepository { get; }
+        public IClubDescriptionImageRepository clubDescriptionImageRepository { get; }
+        #endregion
     }
 }
