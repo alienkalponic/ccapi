@@ -9,14 +9,16 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Project.Application.Common.Repository;
 using Project.Domain.Dto.Banner;
+using Project.Domain.Dto.ClubActivity;
 using Project.Domain.Dto.ClubDescription;
+using Project.Domain.Dto.Gallery;
 using Project.Domain.Model;
 using Project.Domain.Utility;
 using Project.Infastructure.Data;
 using Project.Infastructure.Service;
 using System.Data;
-using IOFile = System.IO.File;
 using IODirectory = System.IO.Directory;
+using IOFile = System.IO.File;
 
 namespace Project.Api.Controllers
 {
@@ -396,12 +398,12 @@ namespace Project.Api.Controllers
          * EXEC - OPERATION_ID = 4
          ***************************************/
         [Authorize]
-        [HttpDelete]
+        [HttpPost]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [Route("delete-banner-by-id/{BannerId:long}", Name = "DeleteBannerById")]
-        public async Task<ActionResult<ApiResponse>> DeleteBannerById(long BannerId)
+        [Route("remove-banner-by-id/{BannerId:long}", Name = "RemoveBannerById")]
+        public async Task<ActionResult<ApiResponse>> RemoveBannerById(long BannerId)
         {
             var rootPath = _webHostEnvironment.WebRootPath
                ?? Path.Combine(Directory.GetCurrentDirectory());
@@ -829,27 +831,586 @@ namespace Project.Api.Controllers
                 }
             }
         }
-
-        [HttpDelete]
-        [Route("delete-club-description/{ClubDescriptionId:long}")]
-        public async Task<ActionResult<ApiResponse>> DeleteClubDescription(long ClubDescriptionId)
+        [Authorize]
+        [HttpPost]
+        [Route("remove-club-description-by-id/{ClubDescriptionId:long}")]
+        public async Task<ActionResult<ApiResponse>> RemoveClubDescription(long ClubDescriptionId)
         {
+            
+
+            var rootPath = _webHostEnvironment.WebRootPath
+                ?? Path.Combine(Directory.GetCurrentDirectory());
+            string? oldFileUrl = null;
+            string? oldMobileUrl = null;
+            var fetchParams = new SqlParameter[]
+                {
+                    new("@OPERATION_ID", 9),
+                    new("@ClubDescriptionId", ClubDescriptionId)
+                };
+
+            string existingDescriptionResponse = await _unitofWork.clubDescriptionImageRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", fetchParams);
+
+            JObject existingJson = JObject.Parse(existingDescriptionResponse);
             var paramObj = new SqlParameter[]
             {
                 new("@OPERATION_ID", 8),
                 new("@ClubDescriptionId", ClubDescriptionId)
             };
 
-            string response = await _unitofWork.bannerRepository
+            string responseDetails = await _unitofWork.clubDescriptionImageRepository
                 .CallStoreProcedure("Sp_Circle_ContentManagement", paramObj);
+
+            JObject JSONObj = JObject.Parse(responseDetails);
+
+            if (JSONObj.ContainsKey("Status") && Convert.ToBoolean(JSONObj["Status"]))
+            {
+                JArray responseArray = (JArray)existingJson["Response"]!;
+                if (responseArray != null && responseArray.Count > 0)
+                {
+                    var firstItem = responseArray[0];
+
+                    // Images array ধরলাম
+                    JArray imagesArray = (JArray)firstItem["Images"];
+
+                    if (imagesArray != null && imagesArray.Count > 0)
+                    {
+                        foreach (var image in imagesArray)
+                        {
+                            var imageUrl = image["ImageUrl"]?.ToString();
+
+                            if (!string.IsNullOrEmpty(imageUrl))
+                            {
+                                FileUploadHelper.DeleteFile(rootPath, imageUrl);
+                            }
+                        }
+                    }
+                }
+
+                // response return
+                if (existingJson["Response"] != null)
+                    return _responseService.Success(JsonConvert.SerializeObject(existingJson["Response"]));
+
+                return _responseService.NotFound("Data not found.");
+            }
+
+            return _responseService.Error((string)JSONObj["Response"]);
+        }
+
+        #endregion
+
+        #region::ClubActivities
+
+        [HttpGet]
+        [Route("get-all-activities/{PageSize:long}/{PageNumber:long}")]
+        public async Task<ActionResult<ApiResponse>> GetAllActivities(long PageSize, long PageNumber, string Search = null)
+        {
+            _paramObj = new SqlParameter[]
+            {
+                new("@OPERATION_ID", 13),
+                new("@PageSize", PageSize),
+                new("@PageNumber", PageNumber),
+                new("@Search", Search)
+            };
+
+            string response = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+            JObject json = JObject.Parse(response);
+
+            if (Convert.ToBoolean(json["Status"]))
+            {
+                JArray arr = (JArray)json["Response"]!;
+
+                return _responseService.PaginatedSuccess(
+                    JsonConvert.SerializeObject(arr, Formatting.None),
+                    (int)json["TotalItems"]!,
+                    (int)json["ItemsPerPage"]!,
+                    (int)json["CurrentPage"]!,
+                    (int)json["TotalPageCount"]!
+                );
+            }
+
+            return _responseService.Error((string)json["Response"]);
+        }
+
+        [HttpGet]
+        [Route("get-activity-by-id/{ActivityId:long}")]
+        public async Task<ActionResult<ApiResponse>> GetActivityById(long ActivityId)
+        {
+            _paramObj = new SqlParameter[]
+            {
+                new("@OPERATION_ID", 14),
+                new("@ActivityId", ActivityId)
+            };
+
+            string response = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+            JObject json = JObject.Parse(response);
+
+            if (Convert.ToBoolean(json["Status"]))
+                return _responseService.Success(JsonConvert.SerializeObject(json["Response"]));
+
+            return _responseService.Error((string)json["Response"]);
+        }
+
+        [HttpPost]
+        [Route("create-activity")]
+        public async Task<ActionResult<ApiResponse>> CreateActivity([FromForm] CreateActivityDto dto)
+        {
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+
+            if (dto.Image == null)
+                return _responseService.Error("Image required");
+
+            if (!FileUploadHelper.IsImage(dto.Image))
+                return _responseService.Error("Only image allowed");
+
+            var (fileUrl, fileName) =
+                await FileUploadHelper.SaveFileAsync(dto.Image, rootPath, "activities");
+
+            var obj = new[]
+            {
+                new {
+                    Title = dto.Title,
+                    SubTitle = dto.SubTitle,
+                    Description = dto.Description,
+                    ImageUrl = fileUrl,
+                    ImageName = fileName,
+                    RedirectUrl = dto.RedirectUrl,
+                    DisplayOrder = dto.DisplayOrder,
+                    IsActive = true
+                }
+            };
+
+            _paramObj = new SqlParameter[]
+            {
+            new("@OPERATION_ID", 11),
+            new("@JSON", JsonConvert.SerializeObject(obj))
+            };
+
+            string response = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+            JObject json = JObject.Parse(response);
+
+            if (Convert.ToBoolean(json["Status"]))
+                return _responseService.Success((string)json["Response"]);
+
+            FileUploadHelper.DeleteFile(rootPath, fileUrl);
+            return _responseService.Error((string)json["Response"]);
+        }
+
+        [HttpPut]
+        [Route("update-activity")]
+        public async Task<ActionResult<ApiResponse>> UpdateActivity([FromForm] UpdateActivityDto dto)
+        {
+            string? newFileUrl = null;
+            string? newFileName = null;
+
+            string? oldFileUrl = null;
+            string? oldFileName = null;
+
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+
+            try
+            {
+                /* 1️⃣ FETCH OLD DATA */
+                var fetchParams = new SqlParameter[]
+                {
+                new("@OPERATION_ID", 14),
+                new("@ActivityId", dto.ActivityId)
+                };
+
+                string existing = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", fetchParams);
+
+                JObject existingJson = JObject.Parse(existing);
+
+                if (!Convert.ToBoolean(existingJson["Status"]))
+                    return _responseService.Error("Not found");
+
+                JArray arr = (JArray)existingJson["Response"]!;
+                oldFileUrl = arr[0]["ImageUrl"]?.ToString();
+                oldFileName = arr[0]["ImageName"]?.ToString();
+
+                /* 2️⃣ NEW FILE */
+                if (dto.Image != null)
+                {
+                    if (!FileUploadHelper.IsImage(dto.Image))
+                        return _responseService.Error("Only image allowed");
+
+                    (newFileUrl, newFileName) =
+                        await FileUploadHelper.SaveFileAsync(dto.Image, rootPath, "activities");
+                }
+
+                /* 3️⃣ BUILD JSON */
+                var obj = new[]
+                {
+                    new {
+                        ActivityId = dto.ActivityId,
+                        Title = dto.Title,
+                        SubTitle = dto.SubTitle,
+                        Description = dto.Description,
+                        ImageUrl = dto.Image == null ? oldFileUrl : newFileUrl,
+                        ImageName = dto.Image == null ? oldFileName : newFileName,
+                        RedirectUrl = dto.RedirectUrl,
+                        DisplayOrder = dto.DisplayOrder,
+                        IsActive = dto.IsActive
+                    }
+                };
+
+                var param = new SqlParameter[]
+                {
+                    new("@OPERATION_ID", 12),
+                    new("@JSON", JsonConvert.SerializeObject(obj))
+                };
+
+                string update = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", param);
+
+                JObject json = JObject.Parse(update);
+
+                if (!Convert.ToBoolean(json["Status"]))
+                {
+                    FileUploadHelper.DeleteFile(rootPath, newFileUrl);
+                    return _responseService.Error((string)json["Response"]);
+                }
+
+                if (dto.Image != null)
+                    FileUploadHelper.DeleteFile(rootPath, oldFileUrl);
+
+                return _responseService.Success((string)json["Response"]);
+            }
+            catch (Exception ex)
+            {
+                FileUploadHelper.DeleteFile(rootPath, newFileUrl);
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("remove-activity-by-id/{ActivityId:long}")]
+        public async Task<ActionResult<ApiResponse>> DeleteActivity(long ActivityId)
+        {
+            var rootPath = _webHostEnvironment.WebRootPath
+               ?? Path.Combine(Directory.GetCurrentDirectory());
+            string? oldFileUrl = null;
+            string? oldMobileUrl = null;
+            var fetchParams = new SqlParameter[]
+                {
+                    new("@OPERATION_ID", 14),
+                    new("@ActivityId", ActivityId)
+                };
+
+            string existingBannerResponse = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", fetchParams);
+
+            JObject existingJson = JObject.Parse(existingBannerResponse);
+            _paramObj = new SqlParameter[]
+            {
+                new SqlParameter("@OPERATION_ID", 15),
+                new SqlParameter("@ActivityId", ActivityId)
+            };
+
+            string responseDetails = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+            JObject JSONObj = JObject.Parse(responseDetails);
+
+            if (JSONObj.ContainsKey("Status") && Convert.ToBoolean(JSONObj["Status"]))
+            {
+                JArray responseArray = (JArray)existingJson["Response"]!;
+                if (responseArray != null && responseArray.Count > 0)
+                {
+                    oldFileUrl = responseArray[0]["ImageUrl"]?.ToString();
+                    oldMobileUrl = responseArray[0]["MobileImageUrl"]?.ToString();
+
+                    if (oldFileUrl != null)
+                        FileUploadHelper.DeleteFile(rootPath, oldFileUrl);
+
+                    if (oldMobileUrl != null)
+                        FileUploadHelper.DeleteFile(rootPath, oldMobileUrl);
+
+                }
+                if (JSONObj["Response"] != null)
+                    return _responseService.Success(JsonConvert.SerializeObject(JSONObj["Response"]));
+
+                return _responseService.NotFound("Banner not found.");
+            }
+
+            return _responseService.Error((string)JSONObj["Response"]);
+
+
+            
+        }
+        #endregion
+
+        #region::Gallery
+
+        /***************************************
+         * Title - Get All Gallery
+         * OPERATION_ID = 3
+         ***************************************/
+        [HttpGet]
+        [Route("Get-all-gallery/{PageSize:long}/{PageNumber:long}", Name = "GetAllGallery")]
+        public async Task<ActionResult<ApiResponse>> GetAllGallery(long PageSize, long PageNumber, string Search = null)
+        {
+            _paramObj = new SqlParameter[]
+            {
+        new SqlParameter("@OPERATION_ID",18),
+        new SqlParameter("@PageSize",PageSize),
+        new SqlParameter("@PageNumber",PageNumber),
+        new SqlParameter("@Search",Search ?? (object)DBNull.Value),
+            };
+
+            string responseDetails = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+            JObject JSONObj = JObject.Parse(responseDetails);
+
+            if (Convert.ToBoolean(JSONObj["Status"]))
+            {
+                JArray responseArray = (JArray)JSONObj["Response"]!;
+
+                if (responseArray != null && responseArray.Count > 0)
+                {
+                    return _responseService.PaginatedSuccess(
+                        JsonConvert.SerializeObject(responseArray),
+                        (int)JSONObj["TotalItems"]!,
+                        (int)JSONObj["ItemsPerPage"]!,
+                        (int)JSONObj["CurrentPage"]!,
+                        (int)JSONObj["TotalPageCount"]!
+                    );
+                }
+
+                return _responseService.NotFound("No gallery data found");
+            }
+
+            return _responseService.Error((string)JSONObj["Response"]);
+        }
+
+        /***************************************
+         * Title - Get Gallery By Id
+         * OPERATION_ID = 4
+         ***************************************/
+        [HttpGet]
+        [Route("Get-gallery-by-id/{GalleryId:long}")]
+        public async Task<ActionResult<ApiResponse>> GetGalleryById(long GalleryId)
+        {
+            _paramObj = new SqlParameter[]
+            {
+        new SqlParameter("@OPERATION_ID", 19),
+        new SqlParameter("@GalleryItemsId", GalleryId)
+            };
+
+            string response = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
 
             JObject JSONObj = JObject.Parse(response);
 
             if (Convert.ToBoolean(JSONObj["Status"]))
-                return _responseService.Success((string)JSONObj["Response"]);
+            {
+                return _responseService.Success(JsonConvert.SerializeObject(JSONObj["Response"]));
+            }
 
             return _responseService.Error((string)JSONObj["Response"]);
         }
+
+        /***************************************
+         * Title - Create Gallery
+         * OPERATION_ID = 1
+         ***************************************/
+        [HttpPost]
+        [Route("Create-gallery")]
+        public async Task<ActionResult<ApiResponse>> CreateGallery([FromForm] CreateGalleryDto dto)
+        {
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+
+            if (dto.File == null || dto.File.Length == 0)
+                return _responseService.Error("Image is required");
+
+            if (!FileUploadHelper.IsImage(dto.File))
+                return _responseService.Error("Only image allowed");
+
+            var (fileUrl, fileName) = await FileUploadHelper
+                .SaveFileAsync(dto.File, rootPath, "gallery");
+
+            var galleryObj = new[]
+            {
+                new
+                {
+                    Title = dto.Title,
+                    SubTitle = dto.SubTitle,
+                    ExpeditionYear = dto.ExpeditionYear,
+                    ImageUrl = fileUrl,
+                    ImageName = fileName,
+                    DisplayOrder = dto.DisplayOrder,
+                    IsActive = true
+                }
+            };
+
+            _paramObj = new SqlParameter[]
+            {
+                new("@OPERATION_ID",16),
+                new("@JSON", JsonConvert.SerializeObject(galleryObj))
+            };
+
+            string response = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+            JObject JSONObj = JObject.Parse(response);
+
+            if (Convert.ToBoolean(JSONObj["Status"]))
+            {
+                return _responseService.Success((string)JSONObj["Response"]);
+            }
+
+            FileUploadHelper.DeleteFile(rootPath, fileUrl);
+            return _responseService.Error((string)JSONObj["Response"]);
+        }
+
+        /***************************************
+         * Title - Update Gallery
+         * OPERATION_ID = 2
+         ***************************************/
+        [HttpPut]
+        [Route("Update-gallery")]
+        public async Task<ActionResult<ApiResponse>> UpdateGallery([FromForm] UpdateGalleryDto dto)
+        {
+            string? newFileUrl = null;
+            string? newFileName = null;
+            string? oldFileUrl = null;
+            string? oldFileName = null;
+
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+
+            try
+            {
+                // 1️⃣ Get existing
+                var fetchParams = new SqlParameter[]
+                {
+            new("@OPERATION_ID", 19),
+            new("@GalleryItemsId", dto.GalleryItemsId)
+                };
+
+                string existingResponse = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", fetchParams);
+
+                JObject existingJson = JObject.Parse(existingResponse);
+
+                if (!Convert.ToBoolean(existingJson["Status"]))
+                    return _responseService.Error("Gallery not found");
+
+                JArray arr = (JArray)existingJson["Response"]!;
+                oldFileUrl = arr[0]["ImageUrl"]?.ToString();
+                oldFileName = arr[0]["ImageName"]?.ToString();
+
+                // 2️⃣ Upload new image if exists
+                if (dto.File != null)
+                {
+                    if (!FileUploadHelper.IsImage(dto.File))
+                        return _responseService.Error("Only image allowed");
+
+                    (newFileUrl, newFileName) = await FileUploadHelper
+                        .SaveFileAsync(dto.File, rootPath, "gallery");
+                }
+
+                var galleryObj = new[]
+                {
+                    new
+                    {
+                        GalleryItemsId = dto.GalleryItemsId,
+                        Title = dto.Title,
+                        SubTitle = dto.SubTitle,
+                        ExpeditionYear = dto.ExpeditionYear,
+                        ImageUrl = dto.File == null ? oldFileUrl : newFileUrl,
+                        ImageName = dto.File == null ? oldFileName : newFileName,
+                        DisplayOrder = dto.DisplayOrder,
+                        IsActive = dto.IsActive
+                    }
+                };
+
+                var updateParams = new SqlParameter[]
+                {
+                    new("@OPERATION_ID",17),
+                    new("@JSON", JsonConvert.SerializeObject(galleryObj))
+                };
+
+                string updateResponse = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", updateParams);
+
+                JObject updateJson = JObject.Parse(updateResponse);
+
+                if (!Convert.ToBoolean(updateJson["Status"]))
+                {
+                    FileUploadHelper.DeleteFile(rootPath, newFileUrl);
+                    return _responseService.Error((string)updateJson["Response"]);
+                }
+
+                // delete old file
+                if (dto.File != null)
+                    FileUploadHelper.DeleteFile(rootPath, oldFileUrl);
+
+                return _responseService.Success((string)updateJson["Response"]);
+            }
+            catch (Exception ex)
+            {
+                FileUploadHelper.DeleteFile(rootPath, newFileUrl);
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        /***************************************
+         * Title - Delete Gallery
+         * OPERATION_ID = 5
+         ***************************************/
+        [HttpPost]
+        [Route("remove-gallery-by-id/{GalleryId:long}")]
+        public async Task<ActionResult<ApiResponse>> removeeteGallery(long GalleryId)
+        {
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+
+            string? oldFileUrl = null;
+
+            // fetch existing
+            var fetchParams = new SqlParameter[]
+            {
+                new("@OPERATION_ID", 19),
+                new("@GalleryItemsId", GalleryId)
+            };
+
+            string existingResponse = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", fetchParams);
+
+            JObject existingJson = JObject.Parse(existingResponse);
+
+            var deleteParams = new SqlParameter[]
+            {
+                new("@OPERATION_ID", 20),
+                new("@GalleryItemsId", GalleryId)
+            };
+
+            string response = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", deleteParams);
+
+            JObject JSONObj = JObject.Parse(response);
+
+            if (Convert.ToBoolean(JSONObj["Status"]))
+            {
+                JArray arr = (JArray)existingJson["Response"]!;
+                oldFileUrl = arr[0]["ImageUrl"]?.ToString();
+
+                if (oldFileUrl != null)
+                    FileUploadHelper.DeleteFile(rootPath, oldFileUrl);
+
+                return _responseService.Success((string)JSONObj["Response"]);
+            }
+
+            return _responseService.Error((string)JSONObj["Response"]);
+        }
+
 
         #endregion
     }

@@ -39,7 +39,9 @@ namespace Project.Domain.Utility
             rootPath ??= Directory.GetCurrentDirectory();
 
             string uploadsFolder = Path.Combine(rootPath,"assets", "uploads", folderName);
-            Directory.CreateDirectory(uploadsFolder);
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+            
 
             string extension = Path.GetExtension(file.FileName);
             string newFileName = $"{Guid.NewGuid()}{extension}";
