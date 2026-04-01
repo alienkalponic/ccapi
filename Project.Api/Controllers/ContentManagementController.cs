@@ -262,8 +262,7 @@ namespace Project.Api.Controllers
             string? oldFileUrl = null;
             string? oldMobileUrl = null;
             string? oldFileName = null;
-            var rootPath = _webHostEnvironment.WebRootPath
-               ?? Path.Combine(Directory.GetCurrentDirectory());
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
             try
             {
                 /* -------------------------------------------------
@@ -304,7 +303,7 @@ namespace Project.Api.Controllers
                         return _responseService.Error("Only image/video allowed");
 
                     (newFileUrl, newFileName) =
-                        await FileUploadHelper.SaveFileAsync(dto.File, _webHostEnvironment.WebRootPath, "banners");
+                        await FileUploadHelper.SaveFileAsync(dto.File, rootPath, "banners");
                 }
 
                 /* -------------------------------------------------
@@ -320,7 +319,7 @@ namespace Project.Api.Controllers
                     }
 
                     var mobileResult =
-                        await FileUploadHelper.SaveFileAsync(dto.MobileFile, _webHostEnvironment.WebRootPath, "banners");
+                        await FileUploadHelper.SaveFileAsync(dto.MobileFile, rootPath, "banners");
 
                     newMobileUrl = mobileResult.fileUrl;
                 }
