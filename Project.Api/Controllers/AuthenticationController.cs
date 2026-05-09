@@ -407,5 +407,76 @@ namespace Project.Api.Controllers
         //    }
         //    return apiResponse;
         //}
+
+        /***************************************
+          * Title - Update Banner Details 
+          * Login Location - ADMIN PANEL
+          * Procedure - Sp_Circle_ContentManagement
+          * EXEC - EXEC [dbo].[Sp_Circle_ContentManagement] @OPERATION_ID=2
+          ***************************************/
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Update-tank/{percent:long}", Name = "UpdateTank")]
+        public async Task<ActionResult<ApiResponse>> UpdateTank(long percent)
+        {
+
+            try
+            {
+
+
+
+                var updateParams = new SqlParameter[]
+                {
+            new("@OPERATION_ID", 3),
+            new("@Percent", percent)
+                };
+
+                string updateResponse = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_AdminManagement", updateParams);
+
+                JObject updateJson = JObject.Parse(updateResponse);
+
+
+
+                return _responseService.Success((string)updateJson["Response"]);
+            }
+            catch (Exception ex)
+            {
+
+
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Get-tank", Name = "GetTank")]
+        public async Task<ActionResult<ApiResponse>> GetTank()
+        {
+            _paramObj = new SqlParameter[]
+            {
+                new SqlParameter("@OPERATION_ID", 4),
+
+            };
+
+            string responseDetails = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_AdminManagement", _paramObj);
+
+            JObject JSONObj = JObject.Parse(responseDetails);
+
+            if (JSONObj.ContainsKey("Status") && Convert.ToBoolean(JSONObj["Status"]))
+            {
+                if (JSONObj["Response"] != null)
+                    return _responseService.Success(JsonConvert.SerializeObject(JSONObj["Response"]));
+
+                return _responseService.NotFound("Banner not found.");
+            }
+
+            return _responseService.Error((string)JSONObj["Response"]);
+        }
     }
 }
