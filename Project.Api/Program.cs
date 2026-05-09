@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Project.Api;
 using Project.Infastructure;
 using Project.Infastructure.Middleware;
+using Project.Domain.Utility;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Text;
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,11 @@ var key = builder.Configuration.GetValue<string>("ApiSettings:Secret");
 builder.Services.Configure<KestrelServerOptions>(options =>
 {
     options.Limits.MaxRequestBodySize = 2147483647; // Set the maximum request body size in bytes (2GB in this example)
+});
+
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.MaxRequestBodySize = 2147483647;
 });
 
 
@@ -64,6 +70,17 @@ builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwa
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.Use(async (context, next) =>
+{
+    await next();
+    if (context.Response.StatusCode == 403)
+    {
+        var logger = context.RequestServices.GetRequiredService<LogService>();
+        logger.LogCustom($"403 Forbidden detected for {context.Request.Path}", "Diagnostic");
+    }
+});
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

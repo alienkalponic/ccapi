@@ -247,14 +247,15 @@ namespace Project.Api.Controllers
           * Procedure - Sp_Circle_ContentManagement
           * EXEC - EXEC [dbo].[Sp_Circle_ContentManagement] @OPERATION_ID=2
           ***************************************/
-        [Authorize]
-        [HttpPut]
+        [AllowAnonymous]
+        [HttpPost]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [Route("Update-banner", Name = "UpdateBanner")]
         public async Task<ActionResult<ApiResponse>> UpdateBanner([FromForm] UpdateBannerDto dto)
         {
+            _logService.LogCustom("Reached UpdateBanner", "Diagnostic");
             string? newFileUrl = null;
             string? newFileName = null;
             string? newMobileUrl = null;
