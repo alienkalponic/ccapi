@@ -1874,6 +1874,51 @@ namespace Project.Api.Controllers
             }
         }
 
+
+        /***************************************
+         * Title - Get Activity Details By ActivityId
+         * OPERATION_ID = 27
+         ***************************************/
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Get-activity-details-by-activitie-id/{ActivitieId:long}", Name = "GetActivityDetailsByActivityId")]
+        public async Task<ActionResult<ApiResponse>> GetActivityDetailsByActivityId(long ActivitieId)
+        {
+            try
+            {
+                _paramObj = new SqlParameter[]
+                {
+            new SqlParameter("@OPERATION_ID",27),
+            new SqlParameter("@ActivityId",ActivitieId)
+                };
+
+                string responseDetails =
+                    await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject JSONObj = JObject.Parse(responseDetails);
+
+                if (JSONObj.ContainsKey("Status") &&
+                    Convert.ToBoolean(JSONObj["Status"]))
+                {
+                    if (JSONObj["Response"] != null)
+                        return _responseService.Success(
+                            JsonConvert.SerializeObject(JSONObj["Response"]));
+
+                    return _responseService.NotFound("Activity details not found.");
+                }
+
+                return _responseService.Error((string)JSONObj["Response"]);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "GetActivityDetailsById");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
         #endregion
     }
 }
