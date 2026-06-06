@@ -36,6 +36,14 @@ namespace Project.Infastructure.Service
         public IClubDescriptionRepository clubDescriptionRepository { get; private set; }
         public IClubDescriptionImageRepository clubDescriptionImageRepository { get; private set; }
         #endregion
+
+        #region::Activity Details
+        public IActivitieDetailsRepository activitieDetailsRepository { get; private set; }
+        #endregion
+
+        #region::Activity Details Image
+        public IActivitieDetailsImageRepository activitieDetailsImageRepository { get; private set; }
+        #endregion
         public UnitOfWork(IConfiguration configuration, ApplicationDbContext db)
         {
             _db = db;
@@ -46,6 +54,8 @@ namespace Project.Infastructure.Service
             bannerRepository=new BannerService(configuration, _db);
             clubDescriptionRepository=new ClubDescriptionService(configuration, _db);
             clubDescriptionImageRepository=new ClubDescriptionImageService(configuration, _db);
+            activitieDetailsRepository=new ActivitieDetailsService(configuration, _db);
+            activitieDetailsImageRepository=new ActivitieDetailsImageService(configuration, _db);
         }
 
         

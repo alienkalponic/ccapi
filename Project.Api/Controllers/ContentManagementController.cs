@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Project.Application.Common.Repository;
+using Project.Domain.Dto.ActivityDetails;
 using Project.Domain.Dto.Banner;
 using Project.Domain.Dto.ClubActivity;
 using Project.Domain.Dto.ClubDescription;
@@ -17,6 +18,7 @@ using Project.Domain.Utility;
 using Project.Infastructure.Data;
 using Project.Infastructure.Service;
 using System.Data;
+using System.Linq;
 using IODirectory = System.IO.Directory;
 using IOFile = System.IO.File;
 
@@ -1275,7 +1277,7 @@ namespace Project.Api.Controllers
          * Title - Update Gallery
          * OPERATION_ID = 2
          ***************************************/
-        [HttpPut]
+        [HttpPost]
         [Route("Update-gallery")]
         public async Task<ActionResult<ApiResponse>> UpdateGallery([FromForm] UpdateGalleryDto dto)
         {
@@ -1411,6 +1413,466 @@ namespace Project.Api.Controllers
             return _responseService.Error((string)JSONObj["Response"]);
         }
 
+
+        #endregion
+
+        #region::Activity Details
+
+        /***************************************
+         * Title - Get All Activity Details
+         * Procedure - Sp_Circle_ContentManagement
+         * OPERATION_ID = 23
+         ***************************************/
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Get-all-activity-details/{PageSize:long}/{PageNumber:long}", Name = "GetAllActivityDetails")]
+        public async Task<ActionResult<ApiResponse>> GetAllActivityDetails(
+            long PageSize,
+            long PageNumber,
+            string Search = null)
+        {
+            try
+            {
+                _paramObj = new SqlParameter[]
+                {
+            new SqlParameter("@OPERATION_ID",23)
+            {
+                SqlDbType = SqlDbType.Int,
+                Direction = ParameterDirection.Input
+            },
+
+            new SqlParameter("@PageSize",PageSize)
+            {
+                SqlDbType = SqlDbType.Int,
+                Direction = ParameterDirection.Input
+            },
+
+            new SqlParameter("@PageNumber",PageNumber)
+            {
+                SqlDbType = SqlDbType.Int,
+                Direction = ParameterDirection.Input
+            },
+
+            new SqlParameter("@Search",Search ?? (object)DBNull.Value)
+            {
+                SqlDbType = SqlDbType.NVarChar,
+                Direction = ParameterDirection.Input
+            }
+                };
+
+                string responseDetails =
+                    await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject JSONObj = JObject.Parse(responseDetails);
+
+                if (JSONObj.ContainsKey("Status") &&
+                    Convert.ToBoolean(JSONObj["Status"]))
+                {
+                    JArray responseArray = (JArray)JSONObj["Response"]!;
+
+                    if (responseArray != null && responseArray.Count > 0)
+                    {
+                        return _responseService.PaginatedSuccess(
+                            JsonConvert.SerializeObject(responseArray, Formatting.None),
+                            (int)JSONObj["TotalItems"]!,
+                            (int)JSONObj["ItemsPerPage"]!,
+                            (int)JSONObj["CurrentPage"]!,
+                            (int)JSONObj["TotalPageCount"]!
+                        );
+                    }
+
+                    return _responseService.NotFound("No activity details found.");
+                }
+
+                return _responseService.Error((string)JSONObj["Response"]);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "GetAllActivityDetails");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+
+        /***************************************
+         * Title - Get Activity Details By Id
+         * OPERATION_ID = 24
+         ***************************************/
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Get-activity-details-by-id/{ActivitieDetailsId:long}", Name = "GetActivityDetailsById")]
+        public async Task<ActionResult<ApiResponse>> GetActivityDetailsById(long ActivitieDetailsId)
+        {
+            try
+            {
+                _paramObj = new SqlParameter[]
+                {
+            new SqlParameter("@OPERATION_ID",24),
+            new SqlParameter("@ActivitieDetailsId",ActivitieDetailsId)
+                };
+
+                string responseDetails =
+                    await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject JSONObj = JObject.Parse(responseDetails);
+
+                if (JSONObj.ContainsKey("Status") &&
+                    Convert.ToBoolean(JSONObj["Status"]))
+                {
+                    if (JSONObj["Response"] != null)
+                        return _responseService.Success(
+                            JsonConvert.SerializeObject(JSONObj["Response"]));
+
+                    return _responseService.NotFound("Activity details not found.");
+                }
+
+                return _responseService.Error((string)JSONObj["Response"]);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "GetActivityDetailsById");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+
+        /***************************************
+         * Title - Create Activity Details
+         * OPERATION_ID = 21
+         ***************************************/
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Create-activity-details", Name = "CreateActivityDetails")]
+        public async Task<ActionResult<ApiResponse>> CreateActivityDetails(
+            [FromForm] CreateActivityDetailsDto dto)
+        {
+            try
+            {
+                if (dto == null)
+                    return _responseService.Error("Request body is required.");
+
+                if (dto.ActivityId <= 0)
+                    return _responseService.Error("ActivityId is required.");
+
+                if (string.IsNullOrWhiteSpace(dto.Title))
+                    return _responseService.Error("Title is required.");
+
+                if (dto.DisplayOrder <= 0)
+                    return _responseService.Error("DisplayOrder is required.");
+
+                List<object> imageList = new();
+
+                if (dto.Images!= null && dto.Images.Count > 0)
+                {
+                    short priority = 1;
+
+                    foreach (var file in dto.Images)
+                    {
+                        if (!FileUploadHelper.IsImage(file))
+                            return _responseService.Error("Only image files allowed.");
+
+                        var uploadResult =
+                            await FileUploadHelper.SaveFileAsync(
+                                file,
+                                _webHostEnvironment.WebRootPath,
+                                "activity-details");
+
+                        imageList.Add(new
+                        {
+                            ActivitieDetailsImageName = uploadResult.fileName,
+                            ImagePath1 = uploadResult.fileUrl,
+                            DisplayPriority = priority
+                        });
+
+                        priority++;
+                    }
+                }
+
+                var activityObj = new[]
+                {
+            new
+            {
+                ActivityId = dto.ActivityId,
+                Title = dto.Title,
+                SubTitle = dto.SubTitle,
+                Description = dto.Description,
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate,
+                Location = dto.Location,
+                Duration = dto.Duration,
+                Fee = dto.Fee,
+                DisplayOrder = dto.DisplayOrder,
+                IsActive = true,
+                Images = imageList
+            }
+        };
+
+                _paramObj = new SqlParameter[]
+                {
+            new SqlParameter("@OPERATION_ID",21),
+            new SqlParameter("@JSON",
+                JsonConvert.SerializeObject(activityObj))
+                };
+
+                string responseDetails =
+                    await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject JSONObj = JObject.Parse(responseDetails);
+
+                if (Convert.ToBoolean(JSONObj["Status"]))
+                {
+                    return _responseService.Success(
+                        (string)JSONObj["Response"]);
+                }
+
+                return _responseService.Error(
+                    (string)JSONObj["Response"]);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CreateActivityDetails");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+
+        /***************************************
+         * Title - Update Activity Details
+         * OPERATION_ID = 22
+         ***************************************/
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Update-activity-details", Name = "UpdateActivityDetails")]
+        public async Task<ActionResult<ApiResponse>> UpdateActivityDetails(
+            [FromForm] UpdateActivityDetailsDto dto)
+        {
+            
+            try
+            {
+                if (dto == null)
+                    return _responseService.Error("Request body is required.");
+
+                if (dto.ActivitieDetailsId <= 0)
+                    return _responseService.Error("ActivitieDetailsId is required.");
+
+                if (dto.ActivityId <= 0)
+                    return _responseService.Error("ActivityId is required.");
+
+                if (string.IsNullOrWhiteSpace(dto.Title))
+                    return _responseService.Error("Title is required.");
+
+
+
+                var webRootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+
+                // Track file operations so we can roll back safely if the DB transaction fails.
+                var movedToTrash = new List<(string OriginalFullPath, string TrashFullPath)>();
+                var newlyCreatedFullPaths = new List<string>();
+
+
+                var fetchParams = new SqlParameter[]
+                {
+            new SqlParameter("@OPERATION_ID",24),
+            new SqlParameter("@ActivitieDetailsId",dto.ActivitieDetailsId)
+                };
+
+                string existingResponse =
+                    await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", fetchParams);
+
+                JObject existingJson = JObject.Parse(existingResponse);
+
+                if (!Convert.ToBoolean(existingJson["Status"]))
+                    return _responseService.Error("Activity details not found.");
+
+                JArray existingData =
+                    (JArray)existingJson["Response"]!;
+
+                List<object> imageList = new();
+                var existingImages = await _unitofWork.activitieDetailsImageRepository.GetAllAsync(x => x.ActivitieDetailsId == dto.ActivitieDetailsId && x.IsDeleted==false);
+                await DeleteaCTIVITYImagesAsync(existingImages.ToList(), dto.DeletedImageIds ?? new List<long>());
+
+               await AddActivityDetailsImagesAsync(dto.ActivitieDetailsId, dto.NewImages ?? new List<IFormFile>(), existingImages.ToList());
+
+                var activityObj = new[]
+                {
+                    new
+                    {
+                        ActivitieDetailsId = dto.ActivitieDetailsId,
+                        ActivityId = dto.ActivityId,
+                        Title = dto.Title,
+                        SubTitle = dto.SubTitle,
+                        Description = dto.Description,
+                        StartDate = dto.StartDate,
+                        EndDate = dto.EndDate,
+                        Location = dto.Location,
+                        Duration = dto.Duration,
+                        Fee = dto.Fee,
+                        DisplayOrder = dto.DisplayOrder,
+                        IsActive = dto.IsActive,
+                        Images = imageList
+                    }
+                };
+
+                _paramObj = new SqlParameter[]
+                {
+                    new SqlParameter("@OPERATION_ID",22),
+                    new SqlParameter("@JSON",
+                    JsonConvert.SerializeObject(activityObj))
+                };
+
+                string responseDetails =
+                    await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject JSONObj = JObject.Parse(responseDetails);
+
+                if (Convert.ToBoolean(JSONObj["Status"]))
+                {
+                    return _responseService.Success(
+                        (string)JSONObj["Response"]);
+                }
+
+                return _responseService.Error(
+                    (string)JSONObj["Response"]);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "UpdateActivityDetails");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        private async Task DeleteaCTIVITYImagesAsync(
+            List<ActivitieDetailsImage> existingImages,
+            List<long> deletedImageIds
+            )
+        {
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+            var deleteSet = deletedImageIds
+                .Where(x => x > 0)
+                .Distinct()
+                .ToHashSet();
+
+            if (deleteSet.Count == 0)
+                return;
+
+            var existingIds = existingImages.Select(x => x.ActivitieDetailsImageId).ToHashSet();
+            var invalidIds = deleteSet.Where(x => !existingIds.Contains(x)).ToList();
+
+            if (invalidIds.Count > 0)
+                throw new InvalidOperationException($"One or more images do not belong to this club description: {string.Join(",", invalidIds)}");
+
+            var imagesToDelete = existingImages.Where(x => deleteSet.Contains(x.ActivitieDetailsImageId??0)).ToList();
+
+            // Move files to a trash folder first. If the DB transaction rolls back, we can move them back.
+            foreach (var img in imagesToDelete)
+            {
+                
+                FileUploadHelper.DeleteFile(rootPath, img.ImagePath1);
+
+            }
+
+            await _unitofWork.activitieDetailsImageRepository
+                .RemoveRangeAsync(imagesToDelete);
+        }
+
+        private async Task AddActivityDetailsImagesAsync(
+            long ActivityDetailsId,
+            List<IFormFile> newImages,
+            List<ActivitieDetailsImage> existingImages)
+        {
+            string? newFileUrl = null;
+            string? newFileName = null;
+            if (newImages.Count == 0)
+                return;
+
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+
+            var nextDisplayOrder = existingImages.Count == 0 ? 1 : existingImages.Max(x => x.DisplayPriority) + 1;
+
+            foreach (var file in newImages)
+            {
+                (newFileUrl, newFileName) = await FileUploadHelper.SaveFileAsync(file, rootPath, "activity-details");
+
+                await _unitofWork.activitieDetailsImageRepository.AddAsync(new ActivitieDetailsImage
+                {
+                    ActivitieDetailsId = ActivityDetailsId,
+                    ActivitieDetailsImageName = newFileName,
+                    ImagePath1 = newFileUrl,
+                    DisplayPriority =Convert.ToInt16( nextDisplayOrder++),
+                    IsActive = true,
+                    IsDeleted = false,
+                    UpdatedDate = DateTime.UtcNow
+                });
+            }
+        }
+
+        /***************************************
+         * Title - Remove Activity Details
+         * OPERATION_ID = 25
+         ***************************************/
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("remove-activity-details-by-id/{ActivitieDetailsId:long}",
+            Name = "RemoveActivityDetailsById")]
+        public async Task<ActionResult<ApiResponse>> RemoveActivityDetailsById(
+            long ActivitieDetailsId)
+        {
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+            try
+            {
+                var existingImages = await _unitofWork.activitieDetailsImageRepository.GetAllAsync(x => x.ActivitieDetailsId == ActivitieDetailsId && x.IsDeleted == false);
+
+                foreach (var img in existingImages)
+                {
+
+                    FileUploadHelper.DeleteFile(rootPath, img.ImagePath1);
+
+                }
+
+
+                _paramObj = new SqlParameter[]
+                {
+            new SqlParameter("@OPERATION_ID",25),
+            new SqlParameter("@ActivitieDetailsId",ActivitieDetailsId)
+                };
+
+                string responseDetails =
+                    await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject JSONObj = JObject.Parse(responseDetails);
+
+                if (JSONObj.ContainsKey("Status") &&
+                    Convert.ToBoolean(JSONObj["Status"]))
+                {
+                    return _responseService.Success(
+                        JsonConvert.SerializeObject(JSONObj["Response"]));
+                }
+
+                return _responseService.Error(
+                    (string)JSONObj["Response"]);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "RemoveActivityDetailsById");
+                return _responseService.Error(ex.Message);
+            }
+        }
 
         #endregion
     }

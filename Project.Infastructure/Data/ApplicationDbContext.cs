@@ -28,5 +28,16 @@ namespace Project.Infastructure.Data
         public DbSet<ClubDescription> ClubDescription { get; set; }
         public DbSet<ClubDescriptionImage> ClubDescriptionImage { get; set; }
         #endregion
+
+        #region::Activity Details
+        public DbSet<ActivitieDetails> ActivitieDetails { get; set; }
+        #endregion
+
+        #region::Activity Details Image
+        public DbSet<ActivitieDetailsImage> ActivitieDetailsImage { get; set; }
+        #endregion
+
+
+
     }
 }

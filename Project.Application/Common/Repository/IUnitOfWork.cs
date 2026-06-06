@@ -24,5 +24,14 @@ namespace Project.Application.Common.Repository
         public IClubDescriptionRepository clubDescriptionRepository { get; }
         public IClubDescriptionImageRepository clubDescriptionImageRepository { get; }
         #endregion
+
+        #region::ActivitieDetails
+        public IActivitieDetailsRepository activitieDetailsRepository { get; }
+        #endregion
+
+        #region::ActivitieDetailsImage
+        public IActivitieDetailsImageRepository activitieDetailsImageRepository { get; }
+        #endregion
+
     }
 }

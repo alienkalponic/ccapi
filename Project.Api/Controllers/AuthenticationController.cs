@@ -414,7 +414,7 @@ namespace Project.Api.Controllers
           * Procedure - Sp_Circle_ContentManagement
           * EXEC - EXEC [dbo].[Sp_Circle_ContentManagement] @OPERATION_ID=2
           ***************************************/
-        [HttpPost]
+        [HttpGet]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status200OK)]
