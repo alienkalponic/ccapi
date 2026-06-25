@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Project.Application.Common.Repository;
+using Project.Domain.Dto.AchievementDetails;
 using Project.Domain.Dto.ActivityDetails;
 using Project.Domain.Dto.Banner;
 using Project.Domain.Dto.ClubActivity;
@@ -362,7 +363,7 @@ namespace Project.Api.Controllers
 
                 if (!Convert.ToBoolean(updateJson["Status"]))
                 {
-                    
+
                     FileUploadHelper.DeleteFile(rootPath, newFileUrl);
                     FileUploadHelper.DeleteFile(rootPath, newMobileUrl);
 
@@ -545,7 +546,7 @@ namespace Project.Api.Controllers
                     uploadedImages.Add(new
                     {
                         Title = fileName.ToString(),
-                        DisplayOrder = i+1,
+                        DisplayOrder = i + 1,
                         ImageUrl = fileUrl,
                         ImageName = fileName
                     });
@@ -838,7 +839,7 @@ namespace Project.Api.Controllers
         [Route("remove-club-description-by-id/{ClubDescriptionId:long}")]
         public async Task<ActionResult<ApiResponse>> RemoveClubDescription(long ClubDescriptionId)
         {
-            
+
 
             var rootPath = _webHostEnvironment.WebRootPath
                 ?? Path.Combine(Directory.GetCurrentDirectory());
@@ -1145,7 +1146,7 @@ namespace Project.Api.Controllers
             return _responseService.Error((string)JSONObj["Response"]);
 
 
-            
+
         }
         #endregion
 
@@ -1570,7 +1571,7 @@ namespace Project.Api.Controllers
 
                 List<object> imageList = new();
 
-                if (dto.Images!= null && dto.Images.Count > 0)
+                if (dto.Images != null && dto.Images.Count > 0)
                 {
                     short priority = 1;
 
@@ -1657,7 +1658,7 @@ namespace Project.Api.Controllers
         public async Task<ActionResult<ApiResponse>> UpdateActivityDetails(
             [FromForm] UpdateActivityDetailsDto dto)
         {
-            
+
             try
             {
                 if (dto == null)
@@ -1700,10 +1701,10 @@ namespace Project.Api.Controllers
                     (JArray)existingJson["Response"]!;
 
                 List<object> imageList = new();
-                var existingImages = await _unitofWork.activitieDetailsImageRepository.GetAllAsync(x => x.ActivitieDetailsId == dto.ActivitieDetailsId && x.IsDeleted==false);
+                var existingImages = await _unitofWork.activitieDetailsImageRepository.GetAllAsync(x => x.ActivitieDetailsId == dto.ActivitieDetailsId && x.IsDeleted == false);
                 await DeleteaCTIVITYImagesAsync(existingImages.ToList(), dto.DeletedImageIds ?? new List<long>());
 
-               await AddActivityDetailsImagesAsync(dto.ActivitieDetailsId, dto.NewImages ?? new List<IFormFile>(), existingImages.ToList());
+                await AddActivityDetailsImagesAsync(dto.ActivitieDetailsId, dto.NewImages ?? new List<IFormFile>(), existingImages.ToList());
 
                 var activityObj = new[]
                 {
@@ -1774,12 +1775,12 @@ namespace Project.Api.Controllers
             if (invalidIds.Count > 0)
                 throw new InvalidOperationException($"One or more images do not belong to this club description: {string.Join(",", invalidIds)}");
 
-            var imagesToDelete = existingImages.Where(x => deleteSet.Contains(x.ActivitieDetailsImageId??0)).ToList();
+            var imagesToDelete = existingImages.Where(x => deleteSet.Contains(x.ActivitieDetailsImageId ?? 0)).ToList();
 
             // Move files to a trash folder first. If the DB transaction rolls back, we can move them back.
             foreach (var img in imagesToDelete)
             {
-                
+
                 FileUploadHelper.DeleteFile(rootPath, img.ImagePath1);
 
             }
@@ -1811,7 +1812,7 @@ namespace Project.Api.Controllers
                     ActivitieDetailsId = ActivityDetailsId,
                     ActivitieDetailsImageName = newFileName,
                     ImagePath1 = newFileUrl,
-                    DisplayPriority =Convert.ToInt16( nextDisplayOrder++),
+                    DisplayPriority = Convert.ToInt16(nextDisplayOrder++),
                     IsActive = true,
                     IsDeleted = false,
                     UpdatedDate = DateTime.UtcNow
@@ -1917,6 +1918,197 @@ namespace Project.Api.Controllers
                 _logService.LogCustom(ex.Message, "GetActivityDetailsById");
                 return _responseService.Error(ex.Message);
             }
+        }
+
+        #endregion
+
+        #region::Achievement Details & Gallery
+
+        [HttpGet]
+        [Route("get-all-achievement/{PageSize:long}/{PageNumber:long}")]
+        public async Task<ActionResult<ApiResponse>> GetAllAchievement(long PageSize, long PageNumber, string Search = null)
+        {
+            _paramObj = new SqlParameter[]
+            {
+                new("@OPERATION_ID", 32),
+                new("@PageSize", PageSize),
+                new("@PageNumber", PageNumber),
+                new("@Search", Search)
+            };
+
+            string response = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+            if (string.IsNullOrWhiteSpace(response))
+            {
+                return _responseService.Error("No data returned from database.");
+            }
+
+            JObject json = JObject.Parse(response);
+
+            bool status = json["Status"]?.Value<bool>() ?? false;
+
+            if (status)
+            {
+                JArray arr = json["Response"] as JArray ?? new JArray();
+
+                int totalItems = json["TotalItems"]?.Value<int>() ?? 0;
+                int itemsPerPage = json["ItemsPerPage"]?.Value<int>() ?? 0;
+                int currentPage = json["CurrentPage"]?.Value<int>() ?? 0;
+                int totalPageCount = json["TotalPageCount"]?.Value<int>() ?? 0;
+
+                return _responseService.PaginatedSuccess(
+                    JsonConvert.SerializeObject(arr, Formatting.None),
+                    totalItems,
+                    itemsPerPage,
+                    currentPage,
+                    totalPageCount
+                );
+            }
+
+                return _responseService.Error((string)json["Response"]);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Create-achievement", Name = "CreateAchievement")]
+        public async Task<ActionResult<ApiResponse>> CreateAchievement([FromForm] AchievementDetailsCreateDto dto)
+        {
+            
+
+            var achievementObj = new[]
+            {
+                new {
+                    Title = dto.Title,
+                    GalleryItemsId = dto.GalleryItemsId,
+                    SubTitle = dto.SubTitle,
+                    IsActive = true
+                }
+            };
+
+            _paramObj = new SqlParameter[]
+            {
+                new("@OPERATION_ID", 28),
+                new("@JSON", JsonConvert.SerializeObject(achievementObj))
+            };
+
+            string response = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+            JObject JSONObj = JObject.Parse(response);
+
+            if (Convert.ToBoolean(JSONObj["Status"]))
+            {
+                return _responseService.Success((string)JSONObj["Response"]);
+            }
+            else
+            {
+                return _responseService.Error((string)JSONObj["Response"]);
+            }
+
+
+
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Route("Update-achievement", Name = "UpdateAchievement")]
+        public async Task<ActionResult<ApiResponse>> UpdateAchievement([FromForm] AchievementDetailsUpdateDto dto)
+        {
+            _logService.LogCustom("Reached UpdateBanner", "Diagnostic");
+            
+            try
+            {
+
+
+                var achievementObj = new[]
+                {
+            new {
+                AchievementDetailsId = dto.AchievementDetailsId,
+                Title = dto.Title,
+                GalleryItemsId = dto.GalleryItemsId,
+                SubTitle = dto.SubTitle,
+                IsActive = dto.IsActive
+            }
+        };
+
+                var updateParams = new SqlParameter[]
+                {
+            new("@OPERATION_ID", 29),
+            new("@JSON", JsonConvert.SerializeObject(achievementObj))
+                };
+
+                string updateResponse = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", updateParams);
+
+                JObject updateJson = JObject.Parse(updateResponse);
+
+
+                if (!Convert.ToBoolean(updateJson["Status"]))
+                {
+
+
+                    return _responseService.Error((string)updateJson["Response"]);
+                }
+
+                
+
+                return _responseService.Success((string)updateJson["Response"]);
+            }
+            catch (Exception ex)
+            {
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("create-achievement-gallery")]
+        public async Task<ActionResult<ApiResponse>> CreateAchievementGalley([FromForm] AchievementDetailsGalleryCreateDto dto)
+        {
+            var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+
+            if (dto.Image == null)
+                return _responseService.Error("Image required");
+
+            if (!FileUploadHelper.IsImage(dto.Image))
+                return _responseService.Error("Only image allowed");
+
+            var (fileUrl, fileName) =
+                await FileUploadHelper.SaveFileAsync(dto.Image, rootPath, "achievement");
+
+            var obj = new[]
+            {
+                new {
+                    AchievementDetailsId=dto.AchievementDetailsId,
+                    Title = dto.Title,
+                    Description = dto.Description,
+                    ImageUrl = fileUrl,
+                    DisplayOrder = dto.DisplayOrder,
+                    IsActive = true
+                }
+            };
+
+            _paramObj = new SqlParameter[]
+            {
+            new("@OPERATION_ID", 11),
+            new("@JSON", JsonConvert.SerializeObject(obj))
+            };
+
+            string response = await _unitofWork.bannerRepository
+                .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+            JObject json = JObject.Parse(response);
+
+            if (Convert.ToBoolean(json["Status"]))
+                return _responseService.Success((string)json["Response"]);
+
+            FileUploadHelper.DeleteFile(rootPath, fileUrl);
+            return _responseService.Error((string)json["Response"]);
         }
 
         #endregion

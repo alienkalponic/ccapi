@@ -36,7 +36,12 @@ namespace Project.Infastructure.Data
         #region::Activity Details Image
         public DbSet<ActivitieDetailsImage> ActivitieDetailsImage { get; set; }
         #endregion
-
+        #region::Achievement Details
+        public DbSet<AchievementDetails> AchievementDetails { get; set; }
+        #endregion
+        #region::Achievement Details Gallery
+        public DbSet<AchievementDetailsGallery> AchievementDetailsGallery { get; set; }
+        #endregion
 
 
     }

@@ -33,5 +33,13 @@ namespace Project.Application.Common.Repository
         public IActivitieDetailsImageRepository activitieDetailsImageRepository { get; }
         #endregion
 
+        #region::AchievementDetails
+        public IAchievementDetailsRepository achievementDetailsRepository { get; }
+        #endregion
+
+        #region::AchievementDetailsGallery
+        public IAchievementDetailsGalleryRepository achievementDetailsGalleryRepository { get; }
+        #endregion
+
     }
 }
