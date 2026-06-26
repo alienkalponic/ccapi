@@ -161,7 +161,7 @@ namespace Project.Api.Controllers
           * Procedure - Sp_Circle_ContentManagement
           * EXEC - EXEC [dbo].[Sp_Circle_ContentManagement] @OPERATION_ID=1
           ***************************************/
-        //[Authorize]
+        [Authorize]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -250,6 +250,7 @@ namespace Project.Api.Controllers
           * Procedure - Sp_Circle_ContentManagement
           * EXEC - EXEC [dbo].[Sp_Circle_ContentManagement] @OPERATION_ID=2
           ***************************************/
+        [Authorize]
         [AllowAnonymous]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -488,7 +489,7 @@ namespace Project.Api.Controllers
             return _responseService.Error((string)JSONObj["Response"]);
         }
 
-
+        [Authorize]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [Route("Get-club-description-by-id/{ClubDescriptionId:long}")]
@@ -513,6 +514,7 @@ namespace Project.Api.Controllers
             return _responseService.Error((string)JSONObj["Response"]);
         }
 
+        [Authorize]
         [HttpPost]
         [Route("Create-club-description")]
         public async Task<ActionResult<ApiResponse>> CreateClubDescription([FromForm] CreateClubDescriptionDto dto)
@@ -587,7 +589,7 @@ namespace Project.Api.Controllers
             return _responseService.Success((string)json["Response"]!);
         }
 
-        //[Authorize]
+        [Authorize]
         [HttpPost]
         [Route("Update-club-description")]
         public async Task<ActionResult<ApiResponse>> UpdateClubDescription([FromForm] UpdateClubDescriptionRequestDto dto)
@@ -834,6 +836,7 @@ namespace Project.Api.Controllers
                 }
             }
         }
+
         [Authorize]
         [HttpPost]
         [Route("remove-club-description-by-id/{ClubDescriptionId:long}")]
@@ -937,6 +940,7 @@ namespace Project.Api.Controllers
             return _responseService.Error((string)json["Response"]);
         }
 
+        [Authorize]
         [HttpGet]
         [Route("get-activity-by-id/{ActivityId:long}")]
         public async Task<ActionResult<ApiResponse>> GetActivityById(long ActivityId)
@@ -958,6 +962,7 @@ namespace Project.Api.Controllers
             return _responseService.Error((string)json["Response"]);
         }
 
+        [Authorize]
         [HttpPost]
         [Route("create-activity")]
         public async Task<ActionResult<ApiResponse>> CreateActivity([FromForm] CreateActivityDto dto)
@@ -1005,7 +1010,8 @@ namespace Project.Api.Controllers
             return _responseService.Error((string)json["Response"]);
         }
 
-        [HttpPut]
+        [Authorize]
+        [HttpPost]
         [Route("update-activity")]
         public async Task<ActionResult<ApiResponse>> UpdateActivity([FromForm] UpdateActivityDto dto)
         {
@@ -1093,6 +1099,7 @@ namespace Project.Api.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost]
         [Route("remove-activity-by-id/{ActivityId:long}")]
         public async Task<ActionResult<ApiResponse>> DeleteActivity(long ActivityId)
@@ -1156,6 +1163,7 @@ namespace Project.Api.Controllers
          * Title - Get All Gallery
          * OPERATION_ID = 3
          ***************************************/
+
         [HttpGet]
         [Route("Get-all-gallery/{PageSize:long}/{PageNumber:long}", Name = "GetAllGallery")]
         public async Task<ActionResult<ApiResponse>> GetAllGallery(long PageSize, long PageNumber, string Search = null)
@@ -1198,6 +1206,7 @@ namespace Project.Api.Controllers
          * Title - Get Gallery By Id
          * OPERATION_ID = 4
          ***************************************/
+        [Authorize]
         [HttpGet]
         [Route("Get-gallery-by-id/{GalleryId:long}")]
         public async Task<ActionResult<ApiResponse>> GetGalleryById(long GalleryId)
@@ -1225,6 +1234,7 @@ namespace Project.Api.Controllers
          * Title - Create Gallery
          * OPERATION_ID = 1
          ***************************************/
+        [Authorize]
         [HttpPost]
         [Route("Create-gallery")]
         public async Task<ActionResult<ApiResponse>> CreateGallery([FromForm] CreateGalleryDto dto)
@@ -1278,6 +1288,7 @@ namespace Project.Api.Controllers
          * Title - Update Gallery
          * OPERATION_ID = 2
          ***************************************/
+        [Authorize]
         [HttpPost]
         [Route("Update-gallery")]
         public async Task<ActionResult<ApiResponse>> UpdateGallery([FromForm] UpdateGalleryDto dto)
@@ -1369,6 +1380,7 @@ namespace Project.Api.Controllers
          * Title - Delete Gallery
          * OPERATION_ID = 5
          ***************************************/
+        [Authorize]
         [HttpPost]
         [Route("remove-gallery-by-id/{GalleryId:long}")]
         public async Task<ActionResult<ApiResponse>> removeeteGallery(long GalleryId)
@@ -1502,6 +1514,7 @@ namespace Project.Api.Controllers
          * Title - Get Activity Details By Id
          * OPERATION_ID = 24
          ***************************************/
+        [Authorize]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -1547,6 +1560,7 @@ namespace Project.Api.Controllers
          * Title - Create Activity Details
          * OPERATION_ID = 21
          ***************************************/
+        [Authorize]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -1650,6 +1664,7 @@ namespace Project.Api.Controllers
          * Title - Update Activity Details
          * OPERATION_ID = 22
          ***************************************/
+        [Authorize]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -1824,6 +1839,7 @@ namespace Project.Api.Controllers
          * Title - Remove Activity Details
          * OPERATION_ID = 25
          ***************************************/
+        [Authorize]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -1880,6 +1896,7 @@ namespace Project.Api.Controllers
          * Title - Get Activity Details By ActivityId
          * OPERATION_ID = 27
          ***************************************/
+        [Authorize]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -1909,9 +1926,14 @@ namespace Project.Api.Controllers
                             JsonConvert.SerializeObject(JSONObj["Response"]));
 
                     return _responseService.NotFound("Activity details not found.");
+                } 
+                else
+                {
+                    return _responseService.NotFound("Activity details not found.");
                 }
 
-                return _responseService.Error((string)JSONObj["Response"]);
+
+                
             }
             catch (Exception ex)
             {
@@ -1969,6 +1991,7 @@ namespace Project.Api.Controllers
                 return _responseService.Error((string)json["Response"]);
         }
 
+        [Authorize]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -2012,6 +2035,7 @@ namespace Project.Api.Controllers
 
         }
 
+        [Authorize]
         [AllowAnonymous]
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -2066,6 +2090,7 @@ namespace Project.Api.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost]
         [Route("create-achievement-gallery")]
         public async Task<ActionResult<ApiResponse>> CreateAchievementGalley([FromForm] AchievementDetailsGalleryCreateDto dto)
@@ -2087,7 +2112,7 @@ namespace Project.Api.Controllers
                     AchievementDetailsId=dto.AchievementDetailsId,
                     Title = dto.Title,
                     Description = dto.Description,
-                    ImageUrl = fileUrl,
+                    ImagePath1 = fileUrl,
                     DisplayOrder = dto.DisplayOrder,
                     IsActive = true
                 }
@@ -2095,7 +2120,7 @@ namespace Project.Api.Controllers
 
             _paramObj = new SqlParameter[]
             {
-            new("@OPERATION_ID", 11),
+            new("@OPERATION_ID", 30),
             new("@JSON", JsonConvert.SerializeObject(obj))
             };
 
@@ -2109,6 +2134,219 @@ namespace Project.Api.Controllers
 
             FileUploadHelper.DeleteFile(rootPath, fileUrl);
             return _responseService.Error((string)json["Response"]);
+        }
+
+        [Authorize]
+        [HttpPost]
+        [Route("update-achievement-gallery")]
+        public async Task<ActionResult<ApiResponse>> UpdateAchievementGallery([FromForm] AchievementDetailsGalleryUpdateDto dto)
+        {
+            try
+            {
+                var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+                var existing = await _unitofWork.achievementDetailsGalleryRepository.GetAsync(x => x.AchievementDetailsGalleryId == dto.AchievementDetailsGalleryId, tracked: false);
+                if (existing == null)
+                {
+                    return _responseService.Error("Achievement Gallery details not found.");
+                }
+
+                string fileUrl = existing.ImagePath1;
+
+                if (dto.Image != null)
+                {
+                    if (!FileUploadHelper.IsImage(dto.Image))
+                        return _responseService.Error("Only image allowed");
+
+                    var (newUrl, fileName) = await FileUploadHelper.SaveFileAsync(dto.Image, rootPath, "achievement");
+                    
+                    // delete old file if it exists
+                    if (!string.IsNullOrEmpty(existing.ImagePath1))
+                    {
+                        FileUploadHelper.DeleteFile(rootPath, existing.ImagePath1);
+                    }
+                    fileUrl = newUrl;
+                }
+
+                var obj = new[]
+                {
+                    new {
+                        AchievementDetailsGalleryId = dto.AchievementDetailsGalleryId,
+                        AchievementDetailsId = dto.AchievementDetailsId,
+                        Title = dto.Title,
+                        Description = dto.Description,
+                        ImagePath1 = fileUrl,
+                        DisplayOrder = dto.DisplayOrder,
+                        IsActive = dto.IsActive
+                    }
+                };
+
+                _paramObj = new SqlParameter[]
+                {
+                    new("@OPERATION_ID", 31),
+                    new("@JSON", JsonConvert.SerializeObject(obj))
+                };
+
+                string response = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject json = JObject.Parse(response);
+
+                if (Convert.ToBoolean(json["Status"]))
+                    return _responseService.Success((string)json["Response"]);
+
+                return _responseService.Error((string)json["Response"]);
+            }
+            catch (Exception ex)
+            {
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpPost]
+        [Route("delete-achievement-gallery-by-id/{id:long}")]
+        public async Task<ActionResult<ApiResponse>> DeleteAchievementGallery(long id)
+        {
+            try
+            {
+                var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+                var existing = await _unitofWork.achievementDetailsGalleryRepository.GetAsync(x => x.AchievementDetailsGalleryId == id, tracked: false);
+                if (existing == null)
+                {
+                    return _responseService.Error("Achievement Gallery details not found.");
+                }
+                _paramObj = new SqlParameter[]
+                {
+                    new("@OPERATION_ID", 33),
+                    new("@AchievementDetailsGalleryId", id)
+                };
+
+                string response = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject json = JObject.Parse(response);
+
+                if (Convert.ToBoolean(json["Status"]))
+                {
+                    if (!string.IsNullOrEmpty(existing.ImagePath1))
+                    {
+                        FileUploadHelper.DeleteFile(rootPath, existing.ImagePath1);
+                    }
+                    return _responseService.Success((string)json["Response"]);
+                }
+
+                return _responseService.Error((string)json["Response"]);
+            }
+            catch (Exception ex)
+            {
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpGet]
+        [Route("get-achievement-gallery-by-achievement-id/{id:long}")]
+        public async Task<ActionResult<ApiResponse>> GetAchievementGalleryByAchievementId(long id)
+        {
+            try
+            {
+                _paramObj = new SqlParameter[]
+                {
+                    new("@OPERATION_ID", 34),
+                    new("@AchievementDetailsId", id)
+                };
+
+                string response = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject json = JObject.Parse(response);
+
+                if (Convert.ToBoolean(json["Status"]))
+                {
+                    return _responseService.Success(JsonConvert.SerializeObject(json["Response"]));
+                }
+
+                return _responseService.Error((string)json["Response"]);
+            }
+            catch (Exception ex)
+            {
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpPost]
+        [Route("delete-achievement-by-id/{id:long}")]
+        public async Task<ActionResult<ApiResponse>> DeleteAchievementDetails(long id)
+        {
+            try
+            {
+                var rootPath = _webHostEnvironment.WebRootPath ?? Directory.GetCurrentDirectory();
+                
+                // Fetch all child gallery items first to delete their physical files
+                var galleryItems = await _unitofWork.achievementDetailsGalleryRepository.GetAllAsync(x => x.AchievementDetailsId == id && x.IsDeleted == false);
+                
+                _paramObj = new SqlParameter[]
+                {
+                    new("@OPERATION_ID", 35),
+                    new("@AchievementDetailsId", id)
+                };
+
+                string response = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject json = JObject.Parse(response);
+
+                if (Convert.ToBoolean(json["Status"]))
+                {
+                    // Physically delete child gallery files
+                    foreach (var item in galleryItems)
+                    {
+                        if (!string.IsNullOrEmpty(item.ImagePath1))
+                        {
+                            FileUploadHelper.DeleteFile(rootPath, item.ImagePath1);
+                        }
+                    }
+                    return _responseService.Success((string)json["Response"]);
+                }
+
+                return _responseService.Error((string)json["Response"]);
+            }
+            catch (Exception ex)
+            {
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpGet]
+        [Route("get-achievement-by-id/{id:long}")]
+        public async Task<ActionResult<ApiResponse>> GetAchievementDetailsById(long id)
+        {
+            try
+            {
+                _paramObj = new SqlParameter[]
+                {
+                    new("@OPERATION_ID", 36),
+                    new("@AchievementDetailsId", id)
+                };
+
+                string response = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject json = JObject.Parse(response);
+
+                if (Convert.ToBoolean(json["Status"]))
+                {
+                    return _responseService.Success(JsonConvert.SerializeObject(json["Response"]));
+                }
+
+                return _responseService.Error((string)json["Response"]);
+            }
+            catch (Exception ex)
+            {
+                return _responseService.Error(ex.Message);
+            }
         }
 
         #endregion
