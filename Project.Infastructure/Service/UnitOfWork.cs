@@ -49,6 +49,11 @@ namespace Project.Infastructure.Service
         public IAchievementDetailsRepository achievementDetailsRepository { get; private set; }
         public IAchievementDetailsGalleryRepository achievementDetailsGalleryRepository { get; private set; }
         #endregion
+
+        #region::Activity Registration
+        public IActivityRegistrationRepository activityRegistrationRepository { get; private set; }
+
+        #endregion
         public UnitOfWork(IConfiguration configuration, ApplicationDbContext db)
         {
             _db = db;
@@ -63,6 +68,7 @@ namespace Project.Infastructure.Service
             activitieDetailsImageRepository=new ActivitieDetailsImageService(configuration, _db);
             achievementDetailsRepository=new AchievementDetailsService(configuration, _db);
             achievementDetailsGalleryRepository=new AchievementDetailsGalleryService(configuration, _db);
+            activityRegistrationRepository=new ActivityRegistrationService(configuration, _db);
         }
 
         

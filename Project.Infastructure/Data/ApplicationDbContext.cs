@@ -43,6 +43,11 @@ namespace Project.Infastructure.Data
         public DbSet<AchievementDetailsGallery> AchievementDetailsGallery { get; set; }
         #endregion
 
+        #region::Activity Registration
+        public DbSet<ActivityRegistration> ActivityRegistration { get; set; }
+
+        #endregion
+
 
     }
 }

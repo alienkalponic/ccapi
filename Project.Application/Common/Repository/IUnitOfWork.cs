@@ -41,5 +41,9 @@ namespace Project.Application.Common.Repository
         public IAchievementDetailsGalleryRepository achievementDetailsGalleryRepository { get; }
         #endregion
 
+        #region::ActivityRegistration
+        public IActivityRegistrationRepository activityRegistrationRepository { get; }
+        #endregion
+
     }
 }
