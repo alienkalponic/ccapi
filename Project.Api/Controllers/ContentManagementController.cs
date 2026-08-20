@@ -2349,6 +2349,37 @@ namespace Project.Api.Controllers
             }
         }
 
+        //[Authorize]
+        [HttpGet]
+        [Route("get-achievement-by-gallery-item-id/{id:long}")]
+        public async Task<ActionResult<ApiResponse>> GetAchievementDetailsByGalleryItemsId(long id)
+        {
+            try
+            {
+                _paramObj = new SqlParameter[]
+                {
+                    new("@OPERATION_ID", 37),
+                    new("@GalleryItemsId", id)
+                };
+
+                string response = await _unitofWork.bannerRepository
+                    .CallStoreProcedure("Sp_Circle_ContentManagement", _paramObj);
+
+                JObject json = JObject.Parse(response);
+
+                if (Convert.ToBoolean(json["Status"]))
+                {
+                    return _responseService.Success(JsonConvert.SerializeObject(json["Response"]));
+                }
+
+                return _responseService.Error((string)json["Response"]);
+            }
+            catch (Exception ex)
+            {
+                return _responseService.Error(ex.Message);
+            }
+        }
+
         #endregion
     }
 }

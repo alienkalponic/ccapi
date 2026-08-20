@@ -173,6 +173,8 @@ namespace Project.Api.Controllers
                 }
             };
 
+            var data = JsonConvert.SerializeObject(bannerObj);
+
             _paramObj = new SqlParameter[]
             {
                 new("@OPERATION_ID", 1),
