@@ -144,61 +144,7 @@ namespace Project.Api.Controllers
         }
 
 
-        /***************************************
-          * Title - Create ActivityRegistration Details 
-          * Login Location - ADMIN PANEL
-          * Procedure - Sp_Circle_UsersManagement
-          * EXEC - EXEC [dbo].[Sp_Circle_UsersManagement] @OPERATION_ID=1
-          ***************************************/
-        //[Authorize]
-        [HttpPost]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [Route("Create-activityregistration", Name = "CreateActivityRegistration")]
-        public async Task<ActionResult<ApiResponse>> CreateActivityRegistration([FromForm] ActivityRegistrationCreateDto dto)
-        {
-            
 
-            var bannerObj = new[]
-            {
-                new {
-                    fullname = dto.FullName,
-                    emailaddress = dto.EmailAddress,
-                    phonenumber = dto.PhoneNumber,
-                    activityid = dto.ActivityId,
-                    activityname = dto.ActivityName,
-                    messagenotes = dto.MessageNotes,
-                    IsActive = true
-                }
-            };
-
-            var data = JsonConvert.SerializeObject(bannerObj);
-
-            _paramObj = new SqlParameter[]
-            {
-                new("@OPERATION_ID", 1),
-                new("@JSON", JsonConvert.SerializeObject(bannerObj))
-            };
-
-            string response = await _unitofWork.bannerRepository
-                .CallStoreProcedure("Sp_Circle_UsersManagement", _paramObj);
-
-            JObject JSONObj = JObject.Parse(response);
-
-            if (Convert.ToBoolean(JSONObj["Status"]))
-            {
-                return _responseService.Success((string)JSONObj["Response"]);
-            }
-            else
-            {
-                
-                return _responseService.Error((string)JSONObj["Response"]);
-            }
-
-
-
-        }
 
         #endregion
     }

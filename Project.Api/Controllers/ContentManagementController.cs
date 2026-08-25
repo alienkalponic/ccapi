@@ -1896,7 +1896,7 @@ namespace Project.Api.Controllers
          * Title - Get Activity Details By ActivityId
          * OPERATION_ID = 27
          ***************************************/
-        [Authorize]
+        //[Authorize]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
