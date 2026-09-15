@@ -54,6 +54,12 @@ namespace Project.Infastructure.Service
         public IActivityRegistrationRepository activityRegistrationRepository { get; private set; }
 
         #endregion
+
+        #region::About Page
+        public IAboutPageRepository aboutPageRepository { get; private set; }
+        public IAboutPersonRepository aboutPersonRepository { get; private set; }
+        public IAboutPageSectionRepository aboutPageSectionRepository { get; private set; }
+        #endregion
         public UnitOfWork(IConfiguration configuration, ApplicationDbContext db)
         {
             _db = db;
@@ -69,6 +75,9 @@ namespace Project.Infastructure.Service
             achievementDetailsRepository=new AchievementDetailsService(configuration, _db);
             achievementDetailsGalleryRepository=new AchievementDetailsGalleryService(configuration, _db);
             activityRegistrationRepository=new ActivityRegistrationService(configuration, _db);
+            aboutPageRepository=new AboutPageService(configuration, _db);
+            aboutPersonRepository=new AboutPersonService(configuration, _db);
+            aboutPageSectionRepository=new AboutPageSectionService(configuration, _db);
         }
 
         

@@ -25,6 +25,7 @@ namespace Project.Infastructure
             );
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddSingleton<LogService>();
+            services.AddSingleton<EmailService>();
             services.AddSingleton<IApiResponseService, ApiResponseService>();
             return services;
         }

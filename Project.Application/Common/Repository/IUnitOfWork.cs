@@ -45,5 +45,11 @@ namespace Project.Application.Common.Repository
         public IActivityRegistrationRepository activityRegistrationRepository { get; }
         #endregion
 
+        #region::AboutPage
+        public IAboutPageRepository aboutPageRepository { get; }
+        public IAboutPersonRepository aboutPersonRepository { get; }
+        public IAboutPageSectionRepository aboutPageSectionRepository { get; }
+        #endregion
+
     }
 }

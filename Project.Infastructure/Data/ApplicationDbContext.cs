@@ -48,6 +48,13 @@ namespace Project.Infastructure.Data
 
         #endregion
 
+        #region::About Page
+        public DbSet<AboutPage> AboutPage { get; set; }
+        public DbSet<AboutPageSection> AboutPageSection { get; set; }
+        public DbSet<AboutDetails> AboutDetails { get; set; }
+        public DbSet<AboutPerson> AboutPerson { get; set; }
+        #endregion
+
 
     }
 }
