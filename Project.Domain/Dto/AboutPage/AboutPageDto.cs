@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 
 namespace Project.Domain.Dto.AboutPage
 {
@@ -19,6 +18,13 @@ namespace Project.Domain.Dto.AboutPage
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
         public string? BannerImageUrl { get; set; }
+        public bool? IsActive { get; set; }
+
+        [JsonIgnore]
+        public IFormFile? BannerFile { get; set; }
+
+        public long? CreatedBy { get; set; }
+        public long? UpdatedBy { get; set; }
     }
 
     public class AboutPageSectionDto
@@ -34,9 +40,14 @@ namespace Project.Domain.Dto.AboutPage
 
     public class AboutDetailsDto
     {
+        public long? AboutDetailsId { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
+
+        [JsonIgnore]
+        public IFormFile? ImageFile { get; set; }
+
         public int? DisplayOrder { get; set; }
         public bool? IsActive { get; set; }
         public long? CreatedBy { get; set; }
@@ -44,9 +55,14 @@ namespace Project.Domain.Dto.AboutPage
 
     public class AboutPersonDto
     {
+        public long? PersonId { get; set; }
         public string? PersonName { get; set; }
         public string? FullDescription { get; set; }
         public string? ImageUrl { get; set; }
+
+        [JsonIgnore]
+        public IFormFile? ImageFile { get; set; }
+
         public int? DisplayOrder { get; set; }
         public bool? IsActive { get; set; }
         public long? CreatedBy { get; set; }
@@ -56,11 +72,19 @@ namespace Project.Domain.Dto.AboutPage
     {
         public AboutPageDto? AboutPage { get; set; }
 
+        [JsonIgnore]
+        public IFormFile? BannerFile { get; set; }
+
+        [JsonIgnore]
+        public IFormFile? File { get; set; }
+
         public List<AboutPageSectionDto>? AboutPageSection { get; set; }
 
         public List<AboutDetailsDto>? AboutDetails { get; set; }
 
         public List<AboutPersonDto>? AboutPerson { get; set; }
+
+        public long? CreatedBy { get; set; }
     }
 
     public class UpdateAboutPageDto
@@ -68,6 +92,12 @@ namespace Project.Domain.Dto.AboutPage
         public long AboutPageId { get; set; }
 
         public AboutPageDto? AboutPage { get; set; }
+
+        [JsonIgnore]
+        public IFormFile? BannerFile { get; set; }
+
+        [JsonIgnore]
+        public IFormFile? File { get; set; }
 
         public List<AboutPageSectionDto>? AboutPageSection { get; set; }
 

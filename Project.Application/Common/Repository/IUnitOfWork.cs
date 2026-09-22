@@ -51,5 +51,9 @@ namespace Project.Application.Common.Repository
         public IAboutPageSectionRepository aboutPageSectionRepository { get; }
         #endregion
 
+        #region::Category
+        public ICategoryRepository categoryRepository { get; }
+        #endregion
+
     }
 }

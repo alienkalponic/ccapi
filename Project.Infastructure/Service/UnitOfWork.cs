@@ -60,6 +60,10 @@ namespace Project.Infastructure.Service
         public IAboutPersonRepository aboutPersonRepository { get; private set; }
         public IAboutPageSectionRepository aboutPageSectionRepository { get; private set; }
         #endregion
+
+        #region::Category
+        public ICategoryRepository categoryRepository { get; private set; }
+        #endregion
         public UnitOfWork(IConfiguration configuration, ApplicationDbContext db)
         {
             _db = db;
@@ -78,6 +82,7 @@ namespace Project.Infastructure.Service
             aboutPageRepository=new AboutPageService(configuration, _db);
             aboutPersonRepository=new AboutPersonService(configuration, _db);
             aboutPageSectionRepository=new AboutPageSectionService(configuration, _db);
+            categoryRepository=new CategoryService(configuration, _db);
         }
 
         

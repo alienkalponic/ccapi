@@ -55,6 +55,10 @@ namespace Project.Infastructure.Data
         public DbSet<AboutPerson> AboutPerson { get; set; }
         #endregion
 
+        #region::Category
+        public DbSet<Category> Category { get; set; }
+        #endregion
+
 
     }
 }
