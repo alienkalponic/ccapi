@@ -2243,7 +2243,7 @@ namespace Project.Api.Controllers
             }
         }
 
-        [Authorize]
+        //[Authorize]
         [HttpGet]
         [Route("get-achievement-gallery-by-achievement-id/{id:long}")]
         public async Task<ActionResult<ApiResponse>> GetAchievementGalleryByAchievementId(long id)
@@ -2318,7 +2318,7 @@ namespace Project.Api.Controllers
             }
         }
 
-        [Authorize]
+        //[Authorize]
         [HttpGet]
         [Route("get-achievement-by-id/{id:long}")]
         public async Task<ActionResult<ApiResponse>> GetAchievementDetailsById(long id)
