@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Project.Domain.Model;
 using System;
 using System.Collections.Generic;
@@ -59,6 +59,16 @@ namespace Project.Infastructure.Data
         public DbSet<Category> Category { get; set; }
         #endregion
 
+        #region::Course Management
+        public DbSet<Course> Course { get; set; }
+        public DbSet<CourseBatch> CourseBatch { get; set; }
+        public DbSet<Person> Person { get; set; }
+        public DbSet<CourseEnrollment> CourseEnrollment { get; set; }
+        public DbSet<CoursePayment> CoursePayment { get; set; }
+        public DbSet<CourseRefund> CourseRefund { get; set; }
+        public DbSet<CourseOfficial> CourseOfficial { get; set; }
+        public DbSet<CourseExpense> CourseExpense { get; set; }
+        #endregion
 
     }
 }

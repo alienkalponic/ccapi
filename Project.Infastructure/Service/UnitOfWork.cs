@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Project.Application.Common.Repository;
@@ -64,6 +64,10 @@ namespace Project.Infastructure.Service
         #region::Category
         public ICategoryRepository categoryRepository { get; private set; }
         #endregion
+
+        #region::CourseManagement
+        public ICourseManagementRepository courseManagementRepository { get; private set; }
+        #endregion
         public UnitOfWork(IConfiguration configuration, ApplicationDbContext db)
         {
             _db = db;
@@ -83,6 +87,7 @@ namespace Project.Infastructure.Service
             aboutPersonRepository=new AboutPersonService(configuration, _db);
             aboutPageSectionRepository=new AboutPageSectionService(configuration, _db);
             categoryRepository=new CategoryService(configuration, _db);
+            courseManagementRepository = new CourseManagementService(configuration, _db);
         }
 
         

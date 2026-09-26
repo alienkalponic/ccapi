@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -53,6 +53,10 @@ namespace Project.Application.Common.Repository
 
         #region::Category
         public ICategoryRepository categoryRepository { get; }
+        #endregion
+
+        #region::CourseManagement
+        public ICourseManagementRepository courseManagementRepository { get; }
         #endregion
 
     }
