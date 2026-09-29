@@ -81,7 +81,7 @@ namespace Project.Domain.Dto.CourseManagement
         public bool FormSubmitted { get; set; } = true;
 
         [StringLength(50)]
-        public string Status { get; set; } = "REGISTERED";
+        public string Status { get; set; }
 
         [StringLength(500)]
         public string? Remarks { get; set; }
