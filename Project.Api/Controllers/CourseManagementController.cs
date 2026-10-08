@@ -1,3 +1,4 @@
+using Azure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -8,11 +9,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Project.Application.Common.Repository;
 using Project.Domain.Dto.CourseManagement;
+using Project.Domain.Model;
 using Project.Domain.Utility;
 using Project.Infastructure.Data;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace Project.Api.Controllers
@@ -1103,6 +1106,560 @@ namespace Project.Api.Controllers
             return await ExecuteSpAsync(28, null, extraParams);
         }
 
+        #endregion
+
+        #region:: I. COURSE ACCOUNTANT ::
+        /***************************************
+         * Title - Get All Courses Accountant Wise
+         * Route - GET api/CourseManagement/get-all-course-accountant-wise
+         * Procedure - Sp_Circle_CourseManagement (@OPERATION_ID = 4)
+         ***************************************/
+        [AllowAnonymous]
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("get-all-course-accountant-wise", Name = "GetAllCourseAccountant")]
+        public async Task<ActionResult<ApiResponse>> GetAllCourseAccountant()
+        {
+            try
+            {
+                var getAllDiplomaDegree = await _unitofWork.courseAccountantRepository.GetAllAsync(u => u.IsActive == true);
+
+                if (getAllDiplomaDegree != null)
+                {
+
+                    return _responseService.Success(getAllDiplomaDegree);
+                }
+                else
+                {
+                    return _responseService.NotFound("No Data found");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, $"CourseManagement_linq_GetAllCourseAccountant");
+                return _responseService.Error(ex.Message);
+            }
+            
+        }
+
+        /***************************************
+         * Title - Get Course Accountant By Id
+         * Route - GET api/CourseManagement/get-course-accountant/{id}
+         ***************************************/
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("get-course-accountant/{id:long}", Name = "GetCourseAccountantById")]
+        public async Task<ActionResult<ApiResponse>> GetCourseAccountantById(long id)
+        {
+            try
+            {
+                var accountant = await _unitofWork.courseAccountantRepository.GetAsync(u => u.CourseAccountantId == id, tracked: false);
+
+                if (accountant != null)
+                {
+                    return _responseService.Success(accountant);
+                }
+                else
+                {
+                    return _responseService.NotFound("Course accountant not found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_GetCourseAccountantById");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        /***************************************
+         * Title - Create Course Accountant
+         * Route - POST api/CourseManagement/create-course-accountant
+         ***************************************/
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Route("create-course-accountant", Name = "CreateCourseAccountant")]
+        public async Task<ActionResult<ApiResponse>> CreateCourseAccountant([FromBody] CreateCourseAccountantDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return _responseService.Error("Invalid request model.");
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    return _responseService.Error("Accountant name is required.");
+                }
+
+                var trimmedName = dto.Name.Trim();
+
+                var existingAccountant = await _unitofWork.courseAccountantRepository.GetAsync(
+                    u => u.Name != null && u.Name.ToLower() == trimmedName.ToLower(),
+                    tracked: false
+                );
+
+                if (existingAccountant != null)
+                {
+                    return _responseService.Error("A course accountant with this name already exists.");
+                }
+
+                var courseAccountant = new CourseAccountant
+                {
+                    Name = trimmedName,
+                    IsActive = dto.IsActive,
+                    CreatedDate = DateTime.Now
+                };
+
+                await _unitofWork.courseAccountantRepository.AddAsync(courseAccountant);
+
+                return _responseService.Success("Course accountant created successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_CreateCourseAccountant");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        /***************************************
+         * Title - Update Course Accountant
+         * Route - PUT api/CourseManagement/update-course-accountant
+         ***************************************/
+        [HttpPut]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("update-course-accountant", Name = "UpdateCourseAccountant")]
+        public async Task<ActionResult<ApiResponse>> UpdateCourseAccountant([FromBody] UpdateCourseAccountantDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return _responseService.Error("Invalid request model.");
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    return _responseService.Error("Accountant name is required.");
+                }
+
+                var existingAccountant = await _unitofWork.courseAccountantRepository.GetAsync(
+                    u => u.CourseAccountantId == dto.CourseAccountantId,
+                    tracked: true
+                );
+
+                if (existingAccountant == null)
+                {
+                    return _responseService.NotFound("Course accountant not found.");
+                }
+
+                var trimmedName = dto.Name.Trim();
+
+                var duplicate = await _unitofWork.courseAccountantRepository.GetAsync(
+                    u => u.CourseAccountantId != dto.CourseAccountantId && u.Name != null && u.Name.ToLower() == trimmedName.ToLower(),
+                    tracked: false
+                );
+
+                if (duplicate != null)
+                {
+                    return _responseService.Error("Another course accountant with this name already exists.");
+                }
+
+                existingAccountant.Name = trimmedName;
+                existingAccountant.IsActive = dto.IsActive;
+
+                await _unitofWork.courseAccountantRepository.UpdateAsync(existingAccountant);
+
+                return _responseService.Success("Course accountant updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_UpdateCourseAccountant");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        /***************************************
+         * Title - Inactive Course Accountant
+         * Route - PUT api/CourseManagement/inactive-course-accountant/{id}
+         ***************************************/
+        [HttpPut]
+        [HttpPost]
+        [HttpDelete]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("inactive-course-accountant/{id:long}", Name = "InactiveCourseAccountant")]
+        public async Task<ActionResult<ApiResponse>> InactiveCourseAccountant(long id)
+        {
+            try
+            {
+                if (id <= 0)
+                {
+                    return _responseService.Error("Invalid course accountant ID.");
+                }
+
+                var existingAccountant = await _unitofWork.courseAccountantRepository.GetAsync(
+                    u => u.CourseAccountantId == id,
+                    tracked: true
+                );
+
+                if (existingAccountant == null)
+                {
+                    return _responseService.NotFound("Course accountant not found.");
+                }
+
+                existingAccountant.IsActive = false;
+                await _unitofWork.courseAccountantRepository.UpdateAsync(existingAccountant);
+
+                return _responseService.Success("Course accountant inactivated successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_InactiveCourseAccountant");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        /***************************************
+         * Title - Delete Course Accountant
+         * Route - DELETE api/CourseManagement/delete-course-accountant/{id}
+         ***************************************/
+        [HttpDelete]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("delete-course-accountant/{id:long}", Name = "DeleteCourseAccountant")]
+        public async Task<ActionResult<ApiResponse>> DeleteCourseAccountant(long id)
+        {
+            return await InactiveCourseAccountant(id);
+        }
+
+        /***************************************
+         * Title - Update Course Accountant Status (Active / Inactive)
+         * Route - PUT api/CourseManagement/update-course-accountant-status/{id}/{isActive}
+         ***************************************/
+        [HttpPut]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("update-course-accountant-status/{id:long}/{isActive:bool}", Name = "UpdateCourseAccountantStatus")]
+        public async Task<ActionResult<ApiResponse>> UpdateCourseAccountantStatus(long id, bool isActive)
+        {
+            try
+            {
+                if (id <= 0)
+                {
+                    return _responseService.Error("Invalid course accountant ID.");
+                }
+
+                var existingAccountant = await _unitofWork.courseAccountantRepository.GetAsync(
+                    u => u.CourseAccountantId == id,
+                    tracked: true
+                );
+
+                if (existingAccountant == null)
+                {
+                    return _responseService.NotFound("Course accountant not found.");
+                }
+
+                existingAccountant.IsActive = isActive;
+                await _unitofWork.courseAccountantRepository.UpdateAsync(existingAccountant);
+
+                string message = isActive
+                    ? "Course accountant activated successfully."
+                    : "Course accountant inactivated successfully.";
+
+                return _responseService.Success(message);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_UpdateCourseAccountantStatus");
+                return _responseService.Error(ex.Message);
+            }
+        }
+        #endregion
+
+        #region:: J. COURSE EXPENSE CATEGORY ::
+        /***************************************
+         * Title - Get All Course Expense Categories
+         * Route - GET api/CourseManagement/get-all-course-expense-category
+         ***************************************/
+        [AllowAnonymous]
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("get-all-course-expense-category", Name = "GetAllCourseExpenseCategory")]
+        [Route("get-all-course-expense-category-wise")]
+        public async Task<ActionResult<ApiResponse>> GetAllCourseExpenseCategory([FromQuery] bool? isActive = null)
+        {
+            try
+            {
+                var categories = isActive.HasValue
+                    ? await _unitofWork.courseExpenseCategoryRepository.GetAllAsync(u => u.IsActive == isActive.Value)
+                    : await _unitofWork.courseExpenseCategoryRepository.GetAllAsync(u => u.IsActive == true);
+
+                if (categories != null && categories.Count > 0)
+                {
+                    return _responseService.Success(categories);
+                }
+                else
+                {
+                    return _responseService.NotFound("No Data found");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_GetAllCourseExpenseCategory");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        /***************************************
+         * Title - Get Course Expense Category By Id
+         * Route - GET api/CourseManagement/get-course-expense-category/{id}
+         ***************************************/
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("get-course-expense-category/{id:long}", Name = "GetCourseExpenseCategoryById")]
+        public async Task<ActionResult<ApiResponse>> GetCourseExpenseCategoryById(long id)
+        {
+            try
+            {
+                var category = await _unitofWork.courseExpenseCategoryRepository.GetAsync(u => u.CourseExpenseCategoryId == id, tracked: false);
+
+                if (category != null)
+                {
+                    return _responseService.Success(category);
+                }
+                else
+                {
+                    return _responseService.NotFound("Course expense category not found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_GetCourseExpenseCategoryById");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        /***************************************
+         * Title - Create Course Expense Category
+         * Route - POST api/CourseManagement/create-course-expense-category
+         ***************************************/
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Route("create-course-expense-category", Name = "CreateCourseExpenseCategory")]
+        public async Task<ActionResult<ApiResponse>> CreateCourseExpenseCategory([FromBody] CreateCourseExpenseCategoryDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return _responseService.Error("Invalid request model.");
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    return _responseService.Error("Expense category name is required.");
+                }
+
+                var trimmedName = dto.Name.Trim();
+
+                var existingCategory = await _unitofWork.courseExpenseCategoryRepository.GetAsync(
+                    u => u.Name != null && u.Name.ToLower() == trimmedName.ToLower(),
+                    tracked: false
+                );
+
+                if (existingCategory != null)
+                {
+                    return _responseService.Error("A course expense category with this name already exists.");
+                }
+
+                var expenseCategory = new CourseExpenseCategory
+                {
+                    Name = trimmedName,
+                    IsActive = dto.IsActive,
+                    CreatedDate = DateTime.Now
+                };
+
+                await _unitofWork.courseExpenseCategoryRepository.AddAsync(expenseCategory);
+
+                return _responseService.Success("Course expense category created successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_CreateCourseExpenseCategory");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        /***************************************
+         * Title - Update Course Expense Category
+         * Route - PUT api/CourseManagement/update-course-expense-category
+         ***************************************/
+        [HttpPut]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("update-course-expense-category", Name = "UpdateCourseExpenseCategory")]
+        public async Task<ActionResult<ApiResponse>> UpdateCourseExpenseCategory([FromBody] UpdateCourseExpenseCategoryDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return _responseService.Error("Invalid request model.");
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    return _responseService.Error("Expense category name is required.");
+                }
+
+                var existingCategory = await _unitofWork.courseExpenseCategoryRepository.GetAsync(
+                    u => u.CourseExpenseCategoryId == dto.CourseExpenseCategoryId,
+                    tracked: true
+                );
+
+                if (existingCategory == null)
+                {
+                    return _responseService.NotFound("Course expense category not found.");
+                }
+
+                var trimmedName = dto.Name.Trim();
+
+                var duplicate = await _unitofWork.courseExpenseCategoryRepository.GetAsync(
+                    u => u.CourseExpenseCategoryId != dto.CourseExpenseCategoryId && u.Name != null && u.Name.ToLower() == trimmedName.ToLower(),
+                    tracked: false
+                );
+
+                if (duplicate != null)
+                {
+                    return _responseService.Error("Another course expense category with this name already exists.");
+                }
+
+                existingCategory.Name = trimmedName;
+                existingCategory.IsActive = dto.IsActive;
+
+                await _unitofWork.courseExpenseCategoryRepository.UpdateAsync(existingCategory);
+
+                return _responseService.Success("Course expense category updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_UpdateCourseExpenseCategory");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        /***************************************
+         * Title - Inactive Course Expense Category
+         * Route - PUT api/CourseManagement/inactive-course-expense-category/{id}
+         ***************************************/
+        [HttpPut]
+        [HttpPost]
+        [HttpDelete]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("inactive-course-expense-category/{id:long}", Name = "InactiveCourseExpenseCategory")]
+        public async Task<ActionResult<ApiResponse>> InactiveCourseExpenseCategory(long id)
+        {
+            try
+            {
+                if (id <= 0)
+                {
+                    return _responseService.Error("Invalid course expense category ID.");
+                }
+
+                var existingCategory = await _unitofWork.courseExpenseCategoryRepository.GetAsync(
+                    u => u.CourseExpenseCategoryId == id,
+                    tracked: true
+                );
+
+                if (existingCategory == null)
+                {
+                    return _responseService.NotFound("Course expense category not found.");
+                }
+
+                existingCategory.IsActive = false;
+                await _unitofWork.courseExpenseCategoryRepository.UpdateAsync(existingCategory);
+
+                return _responseService.Success("Course expense category inactivated successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_InactiveCourseExpenseCategory");
+                return _responseService.Error(ex.Message);
+            }
+        }
+
+        /***************************************
+         * Title - Delete Course Expense Category
+         * Route - DELETE api/CourseManagement/delete-course-expense-category/{id}
+         ***************************************/
+        [HttpDelete]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("delete-course-expense-category/{id:long}", Name = "DeleteCourseExpenseCategory")]
+        public async Task<ActionResult<ApiResponse>> DeleteCourseExpenseCategory(long id)
+        {
+            return await InactiveCourseExpenseCategory(id);
+        }
+
+        /***************************************
+         * Title - Update Course Expense Category Status (Active / Inactive)
+         * Route - PUT api/CourseManagement/update-course-expense-category-status/{id}/{isActive}
+         ***************************************/
+        [HttpPut]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Route("update-course-expense-category-status/{id:long}/{isActive:bool}", Name = "UpdateCourseExpenseCategoryStatus")]
+        public async Task<ActionResult<ApiResponse>> UpdateCourseExpenseCategoryStatus(long id, bool isActive)
+        {
+            try
+            {
+                if (id <= 0)
+                {
+                    return _responseService.Error("Invalid course expense category ID.");
+                }
+
+                var existingCategory = await _unitofWork.courseExpenseCategoryRepository.GetAsync(
+                    u => u.CourseExpenseCategoryId == id,
+                    tracked: true
+                );
+
+                if (existingCategory == null)
+                {
+                    return _responseService.NotFound("Course expense category not found.");
+                }
+
+                existingCategory.IsActive = isActive;
+                await _unitofWork.courseExpenseCategoryRepository.UpdateAsync(existingCategory);
+
+                string message = isActive
+                    ? "Course expense category activated successfully."
+                    : "Course expense category inactivated successfully.";
+
+                return _responseService.Success(message);
+            }
+            catch (Exception ex)
+            {
+                _logService.LogCustom(ex.Message, "CourseManagement_linq_UpdateCourseExpenseCategoryStatus");
+                return _responseService.Error(ex.Message);
+            }
+        }
         #endregion
     }
 }

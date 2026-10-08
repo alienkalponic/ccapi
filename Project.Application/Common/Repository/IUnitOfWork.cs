@@ -57,6 +57,8 @@ namespace Project.Application.Common.Repository
 
         #region::CourseManagement
         public ICourseManagementRepository courseManagementRepository { get; }
+        public ICourseAccountantRepository courseAccountantRepository { get; }
+        public ICourseExpenseCategoryRepository courseExpenseCategoryRepository { get; }
         #endregion
 
     }

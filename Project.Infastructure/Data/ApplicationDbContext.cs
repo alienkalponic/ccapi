@@ -62,6 +62,8 @@ namespace Project.Infastructure.Data
         #region::Course Management
         public DbSet<Course> Course { get; set; }
         public DbSet<CourseBatch> CourseBatch { get; set; }
+        public DbSet<CourseAccountant> CourseAccountant { get; set; }
+        public DbSet<CourseExpenseCategory> CourseExpenseCategory { get; set; }
         public DbSet<Person> Person { get; set; }
         public DbSet<CourseEnrollment> CourseEnrollment { get; set; }
         public DbSet<CoursePayment> CoursePayment { get; set; }

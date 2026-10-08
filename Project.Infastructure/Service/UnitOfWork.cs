@@ -67,6 +67,8 @@ namespace Project.Infastructure.Service
 
         #region::CourseManagement
         public ICourseManagementRepository courseManagementRepository { get; private set; }
+        public ICourseAccountantRepository courseAccountantRepository { get; private set; }
+        public ICourseExpenseCategoryRepository courseExpenseCategoryRepository { get; private set; }
         #endregion
         public UnitOfWork(IConfiguration configuration, ApplicationDbContext db)
         {
@@ -88,6 +90,8 @@ namespace Project.Infastructure.Service
             aboutPageSectionRepository=new AboutPageSectionService(configuration, _db);
             categoryRepository=new CategoryService(configuration, _db);
             courseManagementRepository = new CourseManagementService(configuration, _db);
+            courseAccountantRepository = new CourseAccountantService(configuration, _db);
+            courseExpenseCategoryRepository = new CourseExpenseCategoryService(configuration, _db);
         }
 
         
