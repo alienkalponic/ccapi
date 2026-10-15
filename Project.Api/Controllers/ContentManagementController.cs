@@ -2007,7 +2007,8 @@ namespace Project.Api.Controllers
                     Title = dto.Title,
                     GalleryItemsId = dto.GalleryItemsId,
                     SubTitle = dto.SubTitle,
-                    IsActive = true
+                    IsActive = true,
+                    Report=dto.Report
                 }
             };
 
@@ -2057,7 +2058,8 @@ namespace Project.Api.Controllers
                 Title = dto.Title,
                 GalleryItemsId = dto.GalleryItemsId,
                 SubTitle = dto.SubTitle,
-                IsActive = dto.IsActive
+                IsActive = dto.IsActive,
+                Report=dto.Report
             }
         };
 

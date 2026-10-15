@@ -11,6 +11,7 @@ namespace Project.Domain.Dto.AchievementDetails
         public long AchievementDetailsId { get; set; }
         public long? GalleryItemsId { get; set; }
         public string? Title { get; set; }
+        public string? Report { get; set; }
         public string? SubTitle { get; set; }
         public bool? IsActive { get; set; }
     }
