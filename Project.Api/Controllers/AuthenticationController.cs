@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Azure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -99,7 +99,7 @@ namespace Project.Api.Controllers
                     new Claim(ClaimTypes.NameIdentifier,(string)JSONObj["ContactId"])
 
                 }),
-                    Expires = DateTime.UtcNow.AddDays(1),
+                    Expires = DateTime.UtcNow.AddDays(6),
                     SigningCredentials = new(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
                 };
                 var token = tokenHandeler.CreateToken(tokenDescription);
@@ -188,7 +188,7 @@ namespace Project.Api.Controllers
 
 
                 }),
-                Expires = DateTime.UtcNow.AddDays(1),
+                Expires = DateTime.UtcNow.AddDays(6),
                 SigningCredentials = new(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandeler.CreateToken(tokenDescription);

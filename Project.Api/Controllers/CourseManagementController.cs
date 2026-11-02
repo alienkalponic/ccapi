@@ -1334,6 +1334,7 @@ namespace Project.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPost]
         [Route("delete-course-accountant/{id:long}", Name = "DeleteCourseAccountant")]
         public async Task<ActionResult<ApiResponse>> DeleteCourseAccountant(long id)
         {
@@ -1348,6 +1349,7 @@ namespace Project.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPost]
         [Route("update-course-accountant-status/{id:long}/{isActive:bool}", Name = "UpdateCourseAccountantStatus")]
         public async Task<ActionResult<ApiResponse>> UpdateCourseAccountantStatus(long id, bool isActive)
         {
@@ -1510,6 +1512,7 @@ namespace Project.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPost]
         [Route("update-course-expense-category", Name = "UpdateCourseExpenseCategory")]
         public async Task<ActionResult<ApiResponse>> UpdateCourseExpenseCategory([FromBody] UpdateCourseExpenseCategoryDto dto)
         {
@@ -1611,6 +1614,7 @@ namespace Project.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPost]
         [Route("delete-course-expense-category/{id:long}", Name = "DeleteCourseExpenseCategory")]
         public async Task<ActionResult<ApiResponse>> DeleteCourseExpenseCategory(long id)
         {
@@ -1625,6 +1629,7 @@ namespace Project.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPost]
         [Route("update-course-expense-category-status/{id:long}/{isActive:bool}", Name = "UpdateCourseExpenseCategoryStatus")]
         public async Task<ActionResult<ApiResponse>> UpdateCourseExpenseCategoryStatus(long id, bool isActive)
         {
