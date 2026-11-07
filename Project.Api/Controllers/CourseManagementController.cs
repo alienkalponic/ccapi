@@ -1,4 +1,4 @@
-using Azure;
+﻿using Azure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -145,9 +145,9 @@ namespace Project.Api.Controllers
          * Route - PUT api/CourseManagement/update-course
          * Procedure - Sp_Circle_CourseManagement (@OPERATION_ID = 2)
          ***************************************/
-        [HttpPut]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("update-course", Name = "UpdateCourse")]
         public async Task<ActionResult<ApiResponse>> UpdateCourse([FromBody] UpdateCourseRequestDto dto)
         {
@@ -170,6 +170,7 @@ namespace Project.Api.Controllers
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("delete-course/{courseId:long}", Name = "DeleteCourse")]
         public async Task<ActionResult<ApiResponse>> DeleteCourse(long courseId)
         {
@@ -254,9 +255,9 @@ namespace Project.Api.Controllers
          * Route - PUT api/CourseManagement/update-course-batch
          * Procedure - Sp_Circle_CourseManagement (@OPERATION_ID = 7)
          ***************************************/
-        [HttpPut]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("update-course-batch", Name = "UpdateCourseBatch")]
         public async Task<ActionResult<ApiResponse>> UpdateCourseBatch([FromBody] UpdateCourseBatchRequestDto dto)
         {
@@ -283,6 +284,7 @@ namespace Project.Api.Controllers
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("delete-course-batch/{courseBatchId:long}", Name = "DeleteCourseBatch")]
         public async Task<ActionResult<ApiResponse>> DeleteCourseBatch(long courseBatchId)
         {
@@ -409,9 +411,10 @@ namespace Project.Api.Controllers
          * Route - PUT api/CourseManagement/update-enrollment
          * Procedure - Sp_Circle_CourseManagement (@OPERATION_ID = 12)
          ***************************************/
-        [HttpPut]
+
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("update-enrollment", Name = "UpdateEnrollment")]
         public async Task<ActionResult<ApiResponse>> UpdateEnrollment([FromBody] UpdateCourseEnrollmentRequestDto dto)
         {
@@ -645,9 +648,10 @@ namespace Project.Api.Controllers
          * Route - PUT api/CourseManagement/update-payment
          * Procedure - Sp_Circle_CourseManagement (@OPERATION_ID = 31)
          ***************************************/
-        [HttpPut]
+
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("update-payment", Name = "UpdatePayment")]
         public async Task<ActionResult<ApiResponse>> UpdatePayment([FromBody] UpdateCoursePaymentRequestDto dto)
         {
@@ -831,9 +835,10 @@ namespace Project.Api.Controllers
          * Route - PUT api/CourseManagement/update-course-official
          * Procedure - Sp_Circle_CourseManagement (@OPERATION_ID = 21)
          ***************************************/
-        [HttpPut]
+
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("update-course-official", Name = "UpdateCourseOfficial")]
         public async Task<ActionResult<ApiResponse>> UpdateCourseOfficial([FromBody] UpdateCourseOfficialRequestDto dto)
         {
@@ -853,9 +858,10 @@ namespace Project.Api.Controllers
          * Route - PUT api/CourseManagement/update-course-official-payment-status
          * Procedure - Sp_Circle_CourseManagement (@OPERATION_ID = 21)
          ***************************************/
-        [HttpPut]
+
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("update-course-official-payment-status", Name = "UpdateCourseOfficialPaymentStatus")]
         public async Task<ActionResult<ApiResponse>> UpdateCourseOfficialPaymentStatus([FromBody] UpdateOfficialPaymentStatusDto dto)
         {
@@ -886,6 +892,7 @@ namespace Project.Api.Controllers
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("delete-course-official/{id:long}", Name = "DeleteCourseOfficial")]
         public async Task<ActionResult<ApiResponse>> DeleteCourseOfficial(long id)
         {
@@ -959,9 +966,10 @@ namespace Project.Api.Controllers
          * Route - PUT api/CourseManagement/update-course-expense
          * Procedure - Sp_Circle_CourseManagement (@OPERATION_ID = 25)
          ***************************************/
-        [HttpPut]
+
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("update-course-expense", Name = "UpdateCourseExpense")]
         public async Task<ActionResult<ApiResponse>> UpdateCourseExpense([FromBody] UpdateCourseExpenseRequestDto dto)
         {
@@ -984,6 +992,7 @@ namespace Project.Api.Controllers
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
         [Route("delete-course-expense/{expenseId:long}", Name = "DeleteCourseExpense")]
         public async Task<ActionResult<ApiResponse>> DeleteCourseExpense(long expenseId)
         {
@@ -1229,10 +1238,11 @@ namespace Project.Api.Controllers
          * Title - Update Course Accountant
          * Route - PUT api/CourseManagement/update-course-accountant
          ***************************************/
-        [HttpPut]
+
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPost]
         [Route("update-course-accountant", Name = "UpdateCourseAccountant")]
         public async Task<ActionResult<ApiResponse>> UpdateCourseAccountant([FromBody] UpdateCourseAccountantDto dto)
         {
@@ -1288,7 +1298,7 @@ namespace Project.Api.Controllers
          * Title - Inactive Course Accountant
          * Route - PUT api/CourseManagement/inactive-course-accountant/{id}
          ***************************************/
-        [HttpPut]
+
         [HttpPost]
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -1345,7 +1355,7 @@ namespace Project.Api.Controllers
          * Title - Update Course Accountant Status (Active / Inactive)
          * Route - PUT api/CourseManagement/update-course-accountant-status/{id}/{isActive}
          ***************************************/
-        [HttpPut]
+
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1508,7 +1518,7 @@ namespace Project.Api.Controllers
          * Title - Update Course Expense Category
          * Route - PUT api/CourseManagement/update-course-expense-category
          ***************************************/
-        [HttpPut]
+ 
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1568,7 +1578,7 @@ namespace Project.Api.Controllers
          * Title - Inactive Course Expense Category
          * Route - PUT api/CourseManagement/inactive-course-expense-category/{id}
          ***************************************/
-        [HttpPut]
+
         [HttpPost]
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -1625,7 +1635,7 @@ namespace Project.Api.Controllers
          * Title - Update Course Expense Category Status (Active / Inactive)
          * Route - PUT api/CourseManagement/update-course-expense-category-status/{id}/{isActive}
          ***************************************/
-        [HttpPut]
+
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
